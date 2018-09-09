@@ -1,0 +1,23 @@
+language: go
+sudo: required
+
+go:
+  - 1.x
+
+services:
+  - docker
+  - postgresql
+  - redis-server
+
+before_install:
+  - psql -c "CREATE DATABASE forest;" -U postgres
+  - psql -c "CREATE USER tree WITH PASSWORD 'mypwd';" -U postgres
+  - psql -c "GRANT ALL PRIVILEGES ON DATABASE forest to tree;" -U postgres
+
+install:
+  - go get -u github.com/golang/dep/cmd/dep
+
+script:
+  - dep ensure
+  - make test
+  - docker build -t forest .

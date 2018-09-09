@@ -1,0 +1,28 @@
+app: tiny-site 
+listen: ":8080"
+redis: 127.0.0.1:6379
+track: jt
+session:
+  # 默认为以下值，可不配置
+  # cookie:
+  #   name: jt
+  #   maxAge: 24h
+  #   path: /
+  expires: 24h
+  keys:
+    - cuttlefish
+    - tree.xie
+locationByIP: http://ip.taobao.com/service/getIpInfo.php
+db:
+  uri: postgres://tree:mypwd@127.0.0.1:5432/tiny-site?connect_timeout=5&sslmode=disable
+  poolSize: 100
+upload:
+  # 临时缓存文件的大小
+  cacheSize: 1024
+tiny:
+  address: "127.0.0.1:3016"
+  # GUETZLI的处理时间特别慢，此超时还需要根据需要调整
+  timeout: 10s
+  maxWidth: 2048
+  maxHeight: 2048
+  maxQuality: 100

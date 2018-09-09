@@ -1,0 +1,102 @@
+# Gopkg.toml example
+#
+# Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#   name = "github.com/x/y"
+#   version = "2.4.0"
+#
+# [prune]
+#   non-go = false
+#   go-tests = true
+#   unused-packages = true
+
+
+[[constraint]]
+  name = "github.com/kataras/iris"
+  version = "10.7.0"
+
+[prune]
+  go-tests = true
+  unused-packages = true
+
+[[constraint]]
+  name = "github.com/spf13/viper"
+  version = "1.0.2"
+
+[[constraint]]
+  name = "github.com/go-redis/redis"
+  version = "6.13.2"
+
+[[override]]
+  name = "github.com/json-iterator/go"
+  version = "1.1.5"
+
+[[constraint]]
+  name = "github.com/vicanso/session"
+  version = "0.0.6"
+
+[[constraint]]
+  name = "github.com/oklog/ulid"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/asaskevich/govalidator"
+  version = "9.0.0"
+
+[[constraint]]
+  name = "github.com/mozillazg/request"
+  version = "0.8.0"
+
+[[constraint]]
+  name = "github.com/h2non/gock"
+  version = "1.0.9"
+
+[[constraint]]
+  name = "github.com/vicanso/cookies"
+  version = "0.0.2"
+
+[[constraint]]
+  name = "go.uber.org/zap"
+  version = "1.0.0-rc.1"
+
+[[constraint]]
+  name = "github.com/jinzhu/gorm"
+  version = "1.9.1"
+
+[[constraint]]
+  name = "github.com/lib/pq"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/hashicorp/golang-lru"
+  version = "0.5.0"
+
+[[constraint]]
+  name = "github.com/vicanso/fresh"
+  version = "0.0.2"
+
+[[constraint]]
+  name = "github.com/gobuffalo/packr"
+  version = "1.13.3"
+
+[[constraint]]
+  name = "google.golang.org/grpc"
+  version = "1.14.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/vicanso/tiny"
