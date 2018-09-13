@@ -6,6 +6,7 @@ import (
 	"mime"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/kataras/iris"
 	"github.com/spf13/viper"
+	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/global"
 	"github.com/vicanso/tiny-site/middleware"
 	"github.com/vicanso/tiny-site/model"
@@ -55,15 +57,16 @@ type (
 		FileType string `json:"fileType,omitempty"`
 	}
 	saveFileParams struct {
-		ID       string `json:"id,omitempty" valid:"runelength(26|26)"`
 		Category string `json:"category,omitempty" valid:"runelength(2|20)"`
 		FileType string `json:"fileType,omitempty" valid:"in(jpeg|png)"`
+		MaxAge   string `json:"maxAge,omitempty" valid:"matches(^[0-9]+[smh]$)"`
 	}
-	getFileParams struct {
-		Type    string `json:"type,omitempty" valid:"in(jpeg|png|webp|guetzli),optional"`
-		Width   string `json:"width,omitempty" valid:"int,range(0|2048),optional"`
-		Height  string `json:"height,omitempty" valid:"int,range(0|2048),optional"`
-		Quality string `json:"quality,omitempty" valid:"int,range(0|90),optional"`
+	listFileParams struct {
+		Category string `json:"category,omitempty" valid:"runelength(2|20)"`
+		Fields   string `json:"fields" valid:"runelength(2|100)"`
+		Order    string `json:"order" valid:"optional"`
+		Skip     string `json:"skip" valid:"int,optional"`
+		Limit    string `json:"limit" valid:"in(1|10|30),optional"`
 	}
 )
 
@@ -91,16 +94,25 @@ func init() {
 		maxImageQuality = v
 	}
 
-	// TODO 添加登录校验
 	files := router.NewGroup("/files")
 	images := router.NewGroup("/images")
 
 	ctrl := fileCtrl{}
+	// TODO 添加登录校验
 	files.Add("POST", "/v1/upload", ctrl.upload)
-	files.Add("POST", "/v1/save", ctrl.save)
+	// TODO 添加登录校验
+	files.Add(
+		"POST",
+		"/v1/:id",
+		router.SessionHandler,
+		middleware.IsLogined,
+		ctrl.save,
+	)
+
+	files.Add("GET", "/v1/categories", ctrl.getCategories)
+	files.Add("GET", "/v1", ctrl.list)
 
 	images.Add("GET", "/v1/:file", middleware.IsNilQuery, ctrl.get)
-
 }
 
 func getOptimOptions(params []string) (opts *service.OptimOptions, err error) {
@@ -155,28 +167,35 @@ func (c *fileCtrl) upload(ctx iris.Context) {
 
 // save 保存文件
 func (c *fileCtrl) save(ctx iris.Context) {
+	id := ctx.Params().Get("id")
 	params := &saveFileParams{}
 	err := validate(params, getRequestBody(ctx))
 	if err != nil {
 		resErr(ctx, err)
 		return
 	}
-	data, _ := tmpFileCache.Get(params.ID)
+	data, _ := tmpFileCache.Get(id)
 	if data == nil {
 		resErr(ctx, errFileIsExpired)
 		return
 	}
+	buf := data.([]byte)
+	sess := getSession(ctx)
 	f := model.File{
-		File: params.ID,
-		Type: params.FileType,
-		Data: data.([]byte),
+		File:     id,
+		Type:     params.FileType,
+		Data:     buf,
+		Category: params.Category,
+		Size:     len(buf),
+		MaxAge:   params.MaxAge,
+		Creator:  sess.GetString(cs.SessionAccountField),
 	}
 	err = f.Save()
 	if err != nil {
 		resErr(ctx, err)
 		return
 	}
-	tmpFileCache.Remove(params.ID)
+	tmpFileCache.Remove(id)
 	resCreated(ctx, nil)
 }
 
@@ -226,12 +245,54 @@ func (c *fileCtrl) get(ctx iris.Context) {
 		resErr(ctx, err)
 		return
 	}
-	// 30 day
-	setCache(ctx, "720h")
+	if f.MaxAge != "" {
+		setCache(ctx, f.MaxAge)
+	}
+
 	// convert ext
 	if opts.Type == "guetzli" {
 		ext = ".jpeg"
 	}
 	ctx.ContentType(mime.TypeByExtension(ext))
 	res(ctx, buf)
+}
+
+// getCategories get the category
+func (c *fileCtrl) getCategories(ctx iris.Context) {
+	f := &model.File{}
+	categories, err := f.GetCategories()
+	if err != nil {
+		resErr(ctx, err)
+		return
+	}
+	sort.Slice(categories, func(i, j int) bool {
+		return strings.Compare(categories[i], categories[j]) < 0
+	})
+	m := map[string]interface{}{
+		"categories": categories,
+	}
+	setCache(ctx, "10m")
+	res(ctx, m)
+}
+
+// list list the files
+func (c *fileCtrl) list(ctx iris.Context) {
+	params := &listFileParams{}
+	err := validate(params, getRequestQuery(ctx))
+	if err != nil {
+		resErr(ctx, err)
+		return
+	}
+	f := &model.File{
+		Category: params.Category,
+	}
+	files, err := f.List(params.Fields, params.Order)
+	if err != nil {
+		resErr(ctx, err)
+		return
+	}
+	m := map[string]interface{}{
+		"files": files,
+	}
+	res(ctx, m)
 }

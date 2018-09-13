@@ -11,9 +11,12 @@ type (
 	File struct {
 		BaseModel
 		File     string `json:"file,omitempty" gorm:"type:varchar(26);not null;unique_index:idx_files_file"`
-		Category string `json:"category,omitempty"`
-		Type     string `json:"type,omitempty"`
+		MaxAge   string `json:"maxAge,omitempty" gorm:"type:varchar(10)"`
+		Category string `json:"category,omitempty" gorm:"type:varchar(20)"`
+		Type     string `json:"type,omitempty" gorm:"type:varchar(10)"`
+		Size     int    `json:"size,omitempty"`
 		Data     []byte `json:"data,omitempty"`
+		Creator  string `json:"creator,omitempty" gorm:"type:varchar(20);not null"`
 	}
 )
 
@@ -40,5 +43,37 @@ func (f *File) Save() (err error) {
 func (f *File) First() (err error) {
 	client := GetClient()
 	err = client.Where(f).First(f).Error
+	return
+}
+
+// List list the file
+func (f *File) List(fields, order string) (files []*File, err error) {
+	client := GetClient()
+	files = make([]*File, 0)
+	c := client.Where(f)
+	if fields != "" {
+		c = c.Select(convertFields(fields))
+	}
+	if order != "" {
+		c = c.Order(convertOrder(order))
+	}
+	err = c.Find(&files).Error
+	return
+}
+
+// GetCategories get all category
+func (f *File) GetCategories() (categories []string, err error) {
+	client := GetClient()
+	rows, err := client.Raw("SELECT DISTINCT category FROM files").Rows()
+	if err != nil {
+		return
+	}
+	for rows.Next() {
+		v := ""
+		rows.Scan(&v)
+		if v != "" {
+			categories = append(categories, v)
+		}
+	}
 	return
 }

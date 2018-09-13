@@ -60,6 +60,16 @@ func convertOrder(str string) string {
 	return strings.Join(result, ",")
 }
 
+// convertFields convert the select fields
+func convertFields(str string) string {
+	arr := strings.Split(str, ",")
+	result := make([]string, len(arr))
+	for i, v := range arr {
+		result[i] = toSnakeCase(v)
+	}
+	return strings.Join(result, ",")
+}
+
 func initModels() {
 	db.AutoMigrate(&User{}).
 		AutoMigrate(&UserLogin{}).

@@ -52,18 +52,18 @@ type (
 	User struct {
 		BaseModel
 		Account  string         `json:"account,omitempty" gorm:"type:varchar(20);not null;unique_index:idx_users_account"`
-		Password string         `json:"password,omitempty" gorm:"not null;"`
+		Password string         `json:"password,omitempty" gorm:"type:varchar(128);not null;"`
 		Roles    pq.StringArray `json:"roles,omitempty" gorm:"type:text[]"`
 		client   *gorm.DB
 	}
 	// UserLogin user login
 	UserLogin struct {
 		BaseModel
-		Account   string `json:"account,omitempty" gorm:"index:idx_user_logins_account"`
+		Account   string `json:"account,omitempty" gorm:"type:varchar(20);not null;index:idx_user_logins_account"`
 		UserAgent string `json:"userAgent,omitempty"`
-		IP        string `json:"ip,omitempty"`
-		TrackID   string `json:"trackId,omitempty"`
-		SessionID string `json:"sessionId,omitempty"`
+		IP        string `json:"ip,omitempty" gorm:"type:varchar(64);not null"`
+		TrackID   string `json:"trackId,omitempty" gorm:"type:varchar(64);not null"`
+		SessionID string `json:"sessionId,omitempty" gorm:"type:varchar(64);not null"`
 	}
 )
 

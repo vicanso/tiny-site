@@ -47,8 +47,8 @@ func viperInit(path string) error {
 func setDefaultForTest() {
 	viper.Set("locationByIP", "http://ip.taobao.com/service/getIpInfo.php")
 	viper.Set("redis", "127.0.0.1:6379")
-	viper.Set("db.uri", "postgres://tree:mypwd@127.0.0.1:5432/forest?connect_timeout=5&sslmode=disable")
-	viper.Set("app", "forest")
+	viper.Set("db.uri", "postgres://tree:mypwd@127.0.0.1:5432/tiny-site?connect_timeout=5&sslmode=disable")
+	viper.Set("app", "tiny-site")
 }
 
 func init() {

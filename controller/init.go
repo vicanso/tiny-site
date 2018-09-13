@@ -19,6 +19,7 @@ var (
 	validate        = util.Validate
 	getRequestBody  = util.GetRequestBody
 	getRequestQuery = util.GetRequestQuery
+	getSession      = util.GetSession
 	getUTCNow       = util.GetUTCNow
 	getNow          = util.GetNow
 
