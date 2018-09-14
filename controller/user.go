@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/base64"
-	"fmt"
 	"time"
 
 	"github.com/jinzhu/gorm"
