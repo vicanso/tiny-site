@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/base64"
+	"fmt"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -47,11 +48,11 @@ type (
 	}
 	userLoginParams struct {
 		Account  string `valid:"ascii,runelength(4|10)"`
-		Password string `valid:"runelength(6|32)"`
+		Password string `valid:"runelength(6|64)"`
 	}
 	userRegisterParams struct {
 		Account  string `valid:"ascii,runelength(4|10)"`
-		Password string `valid:"runelength(6|32)"`
+		Password string `valid:"runelength(6|64)"`
 	}
 	userUpdateRolesParams struct {
 		Role string `valid:"in(admin)"`
@@ -226,7 +227,7 @@ func (c *userCtrl) doLogin(ctx iris.Context) {
 		return
 	}
 
-	pwd := util.Sha1(token + u.Password)
+	pwd := util.Sha256(token + u.Password)
 	if util.IsDevelopment() && params.Password == "tree.xie" {
 		// 开发环境万能密码
 		pwd = params.Password

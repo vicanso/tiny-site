@@ -74,6 +74,7 @@ func main() {
 
 	// method 不建议使用 any all
 	routeInfos := make([]map[string]string, 0, 20)
+	urlPrefix := config.GetString("urlPrefix")
 	for i, r := range router.List() {
 		// 对路由检测，判断是否有相同路由
 		for j, tmp := range router.List() {
@@ -92,7 +93,8 @@ func main() {
 			"path":   r.Path,
 		}
 		routeInfos = append(routeInfos, m)
-		app.Handle(r.Method, r.Path, r.Handlers...)
+		routePath := urlPrefix + r.Path
+		app.Handle(r.Method, routePath, r.Handlers...)
 	}
 	global.SaveRouteInfos(routeInfos)
 

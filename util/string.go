@@ -2,6 +2,7 @@ package util
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"math/rand"
 	"time"
@@ -30,6 +31,14 @@ func GenUlid() string {
 // Sha1 gen sha1 string
 func Sha1(str string) string {
 	hash := sha1.New()
+	hash.Write([]byte(str))
+	hashBytes := hash.Sum(nil)
+	return base64.StdEncoding.EncodeToString(hashBytes)
+}
+
+// Sha256 gen sha256 string
+func Sha256(str string) string {
+	hash := sha256.New()
 	hash.Write([]byte(str))
 	hashBytes := hash.Sum(nil)
 	return base64.StdEncoding.EncodeToString(hashBytes)
