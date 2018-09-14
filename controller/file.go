@@ -271,7 +271,7 @@ func (c *fileCtrl) getCategories(ctx iris.Context) {
 	m := map[string]interface{}{
 		"categories": categories,
 	}
-	setCache(ctx, "10m")
+	setCache(ctx, "1m")
 	res(ctx, m)
 }
 
