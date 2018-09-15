@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/vicanso/session"
 	"github.com/vicanso/tiny-site/util"
 )
 
@@ -60,14 +61,22 @@ func TestFileCtrl(t *testing.T) {
 
 	t.Run("save", func(t *testing.T) {
 		buf := []byte(`{
-			"id": "` + uploadInfo.ID + `",
+			"file": "` + uploadInfo.ID + `",
 			"category": "test",
 			"fileType": "` + uploadInfo.FileType + `",
 			"maxAge": "1h"
 		}`)
 		r := httptest.NewRequest(http.MethodPost, "http://127.0.0.1/", nil)
 		w := httptest.NewRecorder()
+
 		ctx := util.NewContext(w, r)
+		sess := session.Mock(session.M{
+			"fetched": true,
+			"data": session.M{
+				"account": "vicanso",
+			},
+		})
+		util.SetSession(ctx, sess)
 		util.SetRequestBody(ctx, buf)
 		ctrl.save(ctx)
 		if ctx.GetStatusCode() != http.StatusCreated {

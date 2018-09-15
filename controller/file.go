@@ -2,6 +2,9 @@ package controller
 
 import (
 	"bytes"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"mime"
 	"net/http"
@@ -198,6 +201,20 @@ func (c *fileCtrl) save(ctx iris.Context) {
 		return
 	}
 	buf := data.([]byte)
+	reader := bytes.NewReader(buf)
+
+	var img image.Image
+	if params.FileType == "png" {
+		img, err = png.Decode(reader)
+	} else {
+		// 暂时只支持两种类型
+		img, err = jpeg.Decode(reader)
+	}
+	if err != nil {
+		resErr(ctx, err)
+		return
+	}
+	b := img.Bounds()
 	sess := getSession(ctx)
 	f := model.File{
 		File:     util.GenUlid(),
@@ -205,6 +222,8 @@ func (c *fileCtrl) save(ctx iris.Context) {
 		Data:     buf,
 		Category: params.Category,
 		Size:     len(buf),
+		Width:    b.Dx(),
+		Height:   b.Dy(),
 		MaxAge:   params.MaxAge,
 		Creator:  sess.GetString(cs.SessionAccountField),
 	}

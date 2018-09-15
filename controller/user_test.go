@@ -10,10 +10,10 @@ import (
 
 	"github.com/kataras/iris"
 
+	"github.com/vicanso/session"
 	"github.com/vicanso/tiny-site/config"
 	"github.com/vicanso/tiny-site/model"
 	"github.com/vicanso/tiny-site/util"
-	"github.com/vicanso/session"
 )
 
 func TestUserCtrl(t *testing.T) {
@@ -214,7 +214,7 @@ func TestUserCtrl(t *testing.T) {
 		token := util.RandomString(8)
 		util.SetRequestBody(ctx, []byte(`{
 			"account": "`+account+`",
-			"password": "`+util.Sha1(token+password)+`"
+			"password": "`+util.Sha256(token+password)+`"
 		}`))
 		util.SetSession(ctx, sess)
 		sess.Set(loginTokenKey, token)
@@ -228,6 +228,7 @@ func TestUserCtrl(t *testing.T) {
 		}
 
 		ctrl.doLogin(ctx)
+
 		data := util.GetBody(ctx).(*userInfoResponse)
 		if data.Account != account {
 			t.Fatalf("login fail")

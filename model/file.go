@@ -15,6 +15,8 @@ type (
 		Category string `json:"category,omitempty" gorm:"type:varchar(20)"`
 		Type     string `json:"type,omitempty" gorm:"type:varchar(10)"`
 		Size     int    `json:"size,omitempty"`
+		Width    int    `json:"width,omitempty"`
+		Height   int    `json:"height,omitempty"`
 		Data     []byte `json:"data,omitempty"`
 		Creator  string `json:"creator,omitempty" gorm:"type:varchar(20);not null"`
 	}
