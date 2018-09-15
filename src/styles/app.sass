@@ -1,0 +1,41 @@
+@import "./const.sass"
+
+*
+  box-sizing: border-box
+  &:before, &:after
+    box-sizing: border-box
+.clearfix:before, .clearfix:after
+  display: table
+  content: " "
+.clearfix:after
+  clear: both
+
+body, html
+  margin: 0
+  font-family: "Open Sans", "Helvetica Neue", Arial, Verdana, sans-serif
+  color: $COLOR_LIGHT_BLACK
+  background-color: #fefefe
+  -webkit-font-smoothing: antialiased
+  -moz-osx-font-smoothing: grayscale
+
+.mainWrapper
+  margin: $MAIN_HEADER_HEIGHT 0 0 $MAIN_NAV_WIDTH
+
+.pullRight
+  float: right
+.pullLeft
+  float: left
+.mright10
+  margin-right: 10px
+.mright5
+  margin-right: 5px
+.mleft5
+  margin-left: 5px
+.mleft10
+  margin-left: 10px
+.mtop10
+  margin-top: 10px
+.font24
+  font-size: 24px
+.tac
+  text-align: center
