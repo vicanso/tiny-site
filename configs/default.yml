@@ -26,3 +26,4 @@ tiny:
   maxWidth: 2048
   maxHeight: 2048
   maxQuality: 100
+  maxFileSize: 1449616

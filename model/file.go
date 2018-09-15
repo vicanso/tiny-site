@@ -47,7 +47,7 @@ func (f *File) First() (err error) {
 }
 
 // List list the file
-func (f *File) List(fields, order string) (files []*File, err error) {
+func (f *File) List(fields, order string, skip, limit int) (files []*File, err error) {
 	client := GetClient()
 	files = make([]*File, 0)
 	c := client.Where(f)
@@ -57,7 +57,20 @@ func (f *File) List(fields, order string) (files []*File, err error) {
 	if order != "" {
 		c = c.Order(convertOrder(order))
 	}
+	if skip != 0 {
+		c = c.Offset(skip)
+	}
+	if limit != 0 {
+		c = c.Limit(limit)
+	}
 	err = c.Find(&files).Error
+	return
+}
+
+// Count count the file
+func (f *File) Count() (count int, err error) {
+	client := GetClient()
+	err = client.Model(&File{}).Where(f).Count(&count).Error
 	return
 }
 

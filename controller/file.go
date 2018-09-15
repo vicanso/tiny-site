@@ -32,6 +32,12 @@ var (
 		Code:       util.ErrCodeFile,
 		Message:    "the file is expired, please upload again",
 	}
+	errFileIsTooLarge = &util.HTTPError{
+		StatusCode: http.StatusBadRequest,
+		Category:   util.ErrCategoryValidate,
+		Code:       util.ErrCodeFile,
+		Message:    "the file is too large",
+	}
 	errFileNotFound = &util.HTTPError{
 		StatusCode: http.StatusBadRequest,
 		Category:   util.ErrCategoryValidate,
@@ -48,6 +54,7 @@ var (
 	maxImageHeight  = 2048
 	maxImageQuality = 100
 	maxCacheSize    = 1024
+	maxFileSize     = 1024 * 1024
 )
 
 type (
@@ -60,13 +67,14 @@ type (
 		Category string `json:"category,omitempty" valid:"runelength(2|20)"`
 		FileType string `json:"fileType,omitempty" valid:"in(jpeg|png)"`
 		MaxAge   string `json:"maxAge,omitempty" valid:"matches(^[0-9]+[smh]$)"`
+		File     string `json:"file,omitempty" valid:"runelength(26|26)"`
 	}
 	listFileParams struct {
 		Category string `json:"category,omitempty" valid:"runelength(2|20)"`
 		Fields   string `json:"fields" valid:"runelength(2|100)"`
 		Order    string `json:"order" valid:"optional"`
 		Skip     string `json:"skip" valid:"int,optional"`
-		Limit    string `json:"limit" valid:"in(1|10|30),optional"`
+		Limit    string `json:"limit" valid:"in(1|10|20|30|50),optional"`
 	}
 )
 
@@ -94,6 +102,11 @@ func init() {
 		maxImageQuality = v
 	}
 
+	v = viper.GetInt("tiny.maxFileSize")
+	if v != 0 {
+		maxFileSize = v
+	}
+
 	files := router.NewGroup("/files")
 	images := router.NewGroup("/images")
 
@@ -103,7 +116,7 @@ func init() {
 	// TODO 添加登录校验
 	files.Add(
 		"POST",
-		"/v1/:id",
+		"/v1",
 		router.SessionHandler,
 		middleware.IsLogined,
 		ctrl.save,
@@ -157,7 +170,12 @@ func (c *fileCtrl) upload(ctx iris.Context) {
 		return
 	}
 	id := util.GenUlid()
-	tmpFileCache.Add(id, buf.Bytes())
+	data := buf.Bytes()
+	if len(data) > maxFileSize {
+		resErr(ctx, errFileIsTooLarge)
+		return
+	}
+	tmpFileCache.Add(id, data)
 	info := &uploadInfoResponse{
 		ID:       id,
 		FileType: fileType,
@@ -167,14 +185,14 @@ func (c *fileCtrl) upload(ctx iris.Context) {
 
 // save 保存文件
 func (c *fileCtrl) save(ctx iris.Context) {
-	id := ctx.Params().Get("id")
+	// id := ctx.Params().Get("id")
 	params := &saveFileParams{}
 	err := validate(params, getRequestBody(ctx))
 	if err != nil {
 		resErr(ctx, err)
 		return
 	}
-	data, _ := tmpFileCache.Get(id)
+	data, _ := tmpFileCache.Get(params.File)
 	if data == nil {
 		resErr(ctx, errFileIsExpired)
 		return
@@ -182,7 +200,7 @@ func (c *fileCtrl) save(ctx iris.Context) {
 	buf := data.([]byte)
 	sess := getSession(ctx)
 	f := model.File{
-		File:     id,
+		File:     util.GenUlid(),
 		Type:     params.FileType,
 		Data:     buf,
 		Category: params.Category,
@@ -195,8 +213,10 @@ func (c *fileCtrl) save(ctx iris.Context) {
 		resErr(ctx, err)
 		return
 	}
-	tmpFileCache.Remove(id)
-	resCreated(ctx, nil)
+	tmpFileCache.Remove(params.File)
+	// 移除data，减少返回无用数据
+	f.Data = nil
+	resCreated(ctx, f)
 }
 
 // get get file
@@ -286,13 +306,24 @@ func (c *fileCtrl) list(ctx iris.Context) {
 	f := &model.File{
 		Category: params.Category,
 	}
-	files, err := f.List(params.Fields, params.Order)
+	skip, _ := strconv.Atoi(params.Skip)
+	count := -1
+	limit, _ := strconv.Atoi(params.Limit)
+	if skip == 0 {
+		count, err = f.Count()
+		if err != nil {
+			resErr(ctx, err)
+			return
+		}
+	}
+	files, err := f.List(params.Fields, params.Order, skip, limit)
 	if err != nil {
 		resErr(ctx, err)
 		return
 	}
 	m := map[string]interface{}{
 		"files": files,
+		"count": count,
 	}
 	res(ctx, m)
 }
