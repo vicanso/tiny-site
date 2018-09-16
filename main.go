@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/kataras/iris"
+	"github.com/vicanso/tiny-site/asset"
 	"github.com/vicanso/tiny-site/config"
 	_ "github.com/vicanso/tiny-site/controller"
 	"github.com/vicanso/tiny-site/global"
@@ -61,16 +62,19 @@ func main() {
 	app.Use(middleware.NewJSONParser(middleware.JSONParserConfig{}))
 
 	// static file
+	assetIns := asset.New()
 	app.Get("/static/*", middleware.StaticServe(middleware.StaticServeConfig{
-		Path: "./assets",
-		// Asset: asset.New(),
-		Header: map[string]string{
-			"X-File": "My-Static-File",
-		},
+		Asset:       assetIns,
 		Compression: true,
-		MaxAge:      "24h",
+		MaxAge:      "8760h",
 		SMaxAge:     "1h",
 	}))
+
+	app.Get("/", func(ctx iris.Context) {
+		buf := assetIns.Get("index.html")
+		ctx.ContentType("text/html")
+		util.Res(ctx, buf)
+	})
 
 	// method 不建议使用 any all
 	routeInfos := make([]map[string]string, 0, 20)
