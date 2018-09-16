@@ -33,21 +33,30 @@ const fileList = async (
     skip,
     limit
   };
+  const {
+    list,
+  } = state.file;
+  if (list[skip]) {
+    return
+  }
+
   debug(params);
   const res = await request.get(FILES, {
     params
   });
   debug(res);
-  commit(FILE_LIST, {
-    data: res.data,
-    params
-  });
+  commit(FILE_LIST, res.data);
 };
+
+const fileCacheRemove = async({commit}) => {
+  commit(FILE_LIST, null)
+}
 
 const state = {
   file: {
     categories: null,
-    list: null,
+    list: [],
+    currentCategory: '',
     count: 0
   }
 };
@@ -55,7 +64,8 @@ const state = {
 const actions = {
   fileListCategory,
   fileSave,
-  fileList
+  fileList,
+  fileCacheRemove
 };
 
 const mutations = {
@@ -63,9 +73,12 @@ const mutations = {
   [FILE_CATEGORIES](state, data) {
     state.file.categories = data;
   },
-  [FILE_LIST](state, { data, params }) {
-    if (!params.skip) {
+  [FILE_LIST](state, data) {
+    // clear cache
+    if (!data) {
       state.file.list = [];
+      state.file.count = 0;
+      return
     }
     data.files.forEach(function(item) {
       item.createdAt = formatDate(item.createdAt);

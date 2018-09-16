@@ -1,5 +1,5 @@
 <template lang="pug">
-.upload
+.wrapper: .upload
   h3 上传图片
   el-upload.dragWrapper.tac(
     ref="upload"
@@ -83,6 +83,12 @@
 $dragWidth: 400px
 $padding: 15px
 $uploadWidth: 800px
+.wrapper
+  position: fixed
+  left: $MAIN_NAV_WIDTH
+  top: $MAIN_HEADER_HEIGHT
+  right: 0
+  bottom: 0
 .upload
   padding: 0 $padding 
   position: absolute
@@ -90,7 +96,7 @@ $uploadWidth: 800px
   left: 50%
   margin-top: -200px
   width: $uploadWidth
-  margin-left: -$uploadWidth / 2 + ($MAIN_NAV_WIDTH / 2)
+  margin-left: -$uploadWidth / 2 
   background-color: $COLOR_WHITE
   border: $GRAY_BORDER
   border-radius: 2px

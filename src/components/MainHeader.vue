@@ -44,7 +44,9 @@ header.header
   a.logo(
     href="javascript:;"
     @click="$router.push({name: routeHome})"
-  ) Tiny
+  )
+    i.el-icon-news
+    | Tiny
 </template>
 
 <style lang="sass" scoped>
@@ -65,9 +67,15 @@ header.header
   background: $COLOR_BLACK
   height: 100%
   color: $COLOR_WHITE
-  text-indent: 2em
+  padding-left: 20px 
   display: block
   text-decoration: none
+  font-family: Oleo Script,cursive
+  font-size: 24px
+  i
+    font-size: 18px
+    font-weight: bold
+    margin-right: 15px
 .divide
   margin: 0 20px
   color: $COLOR_DARK_GRAY

@@ -6,5 +6,8 @@ module.exports = {
         changeOrigin: true
       }
     }
-  }
+  },
+  baseUrl: process.env.NODE_ENV === 'production'
+    ? '/static/'
+    : '/'
 };

@@ -31,7 +31,18 @@
         label="大小"
       )
       el-table-column(
+        prop="width"
+        width="80"
+        label="宽度"
+      )
+      el-table-column(
+        prop="height"
+        width="80"
+        label="高度"
+      )
+      el-table-column(
         prop="creator"
+        width="120"
         label="上传者"
       )
       el-table-column(
@@ -46,7 +57,7 @@
             @click="preview(scope.row)"
             type="text"
             size="small"
-          ) 预览
+          ) 图片预览
           el-button(
             @click="copyUrl(scope.row)"
             type="text"
@@ -55,9 +66,11 @@
     .pagination: el-pagination(
       layout="sizes, prev, pager, next"
       @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
       :page-sizes="[10, 20, 30, 50]"
       :pageSize="limit" 
       :total="fileCount"
+      :current-page="currentPage"
     )
 </template>
 
@@ -82,18 +95,27 @@
 import { mapState, mapActions } from "vuex";
 import { IMAGES_PREVIEW } from "@/urls";
 import { urlPrefix } from "@/config";
+import {
+  saveListFilePageSize,
+  getListFilePageSize,
+} from "@/helpers/storage";
 export default {
   name: "list-file",
   data() {
+    let limit = getListFilePageSize();
+    if (!limit) {
+      limit = 10;
+    }
     return {
       skip: 0,
-      limit: 10,
+      limit,
       loading: false,
       tableHeight: 0,
       category: this.$route.params.category,
       order: "-createdAt",
-      fields: "file,category,maxAge,createdAt,type,size,creator",
-      currentFiles: null
+      fields: "file,category,maxAge,createdAt,type,size,creator,width,height",
+      currentFiles: null,
+      currentPage: -1,
     };
   },
   computed: {
@@ -102,22 +124,30 @@ export default {
       fileCount: ({ file }) => file.count
     })
   },
-  watch: {
-    files() {
-      const { skip, limit } = this;
-      this.currentFiles = this.files.slice(skip, skip + limit);
-    }
-  },
   methods: {
-    ...mapActions(["fileList"]),
+    ...mapActions(["fileList", "fileCacheRemove"]),
     reset() {
+      this.fileCacheRemove();
       this.skip = 0;
+      this.currentPage = 1;
       this.currentFiles = null;
     },
     preview(data) {
-      const { file, type } = data;
+      const { file, type, width, height } = data;
       const h = this.$createElement;
       const url = urlPrefix + IMAGES_PREVIEW.replace(":file", file);
+      const maxWidth = 300;
+      let style = 'display:block;margin:auto;';
+      if (width && height) {
+        let newWidth = width;
+        let newHeight = height;
+        if (newWidth > maxWidth) {
+          newHeight = maxWidth / newWidth * newHeight;
+          newWidth = maxWidth;
+        }
+        style += `width:${newWidth}px;`
+        style += `height:${newHeight}px;`
+      }
       this.$msgbox({
         title: "图片预览",
         message: h("div", null, [
@@ -127,7 +157,7 @@ export default {
               attrs: {
                 src: `${url}-90-0-0.${type}`
               },
-              style: "display:block;margin:auto"
+              style,
             },
             ""
           )
@@ -158,8 +188,14 @@ export default {
       document.body.removeChild(input);
     },
     handleSizeChange(val) {
+      saveListFilePageSize(val);
       this.limit = val;
       this.reset();
+      this.fetch();
+    },
+    handleCurrentChange(page) {
+      this.skip = this.limit * (page - 1);
+      this.currentPage = page;
       this.fetch();
     },
     async fetch() {
@@ -174,6 +210,7 @@ export default {
           category,
           fields
         });
+        this.currentFiles = this.files.slice(skip, skip + limit);
       } catch (err) {
         this.xError(err);
       } finally {
