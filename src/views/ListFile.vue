@@ -48,7 +48,7 @@
       el-table-column(
         fixed="right"
         label="操作"
-        width="140"
+        width="220"
       )
         template(
           slot-scope="scope"
@@ -58,6 +58,11 @@
             type="text"
             size="small"
           ) 图片预览
+          el-button(
+            @click="clip(scope.row)"
+            type="text"
+            size="small"
+          ) 图片剪辑
           el-button(
             @click="copyUrl(scope.row)"
             type="text"
@@ -93,12 +98,10 @@
 
 <script>
 import { mapState, mapActions } from "vuex";
-import { IMAGES_PREVIEW } from "@/urls";
+import { IMAGES_PREVIEW, IMAGES_CLIP } from "@/urls";
 import { urlPrefix } from "@/config";
-import {
-  saveListFilePageSize,
-  getListFilePageSize,
-} from "@/helpers/storage";
+import { saveListFilePageSize, getListFilePageSize } from "@/helpers/storage";
+import { copy } from "@/helpers/util";
 export default {
   name: "list-file",
   data() {
@@ -115,7 +118,7 @@ export default {
       order: "-createdAt",
       fields: "file,category,maxAge,createdAt,type,size,creator,width,height",
       currentFiles: null,
-      currentPage: -1,
+      currentPage: -1
     };
   },
   computed: {
@@ -137,16 +140,16 @@ export default {
       const h = this.$createElement;
       const url = urlPrefix + IMAGES_PREVIEW.replace(":file", file);
       const maxWidth = 300;
-      let style = 'display:block;margin:auto;';
+      let style = "display:block;margin:auto;";
       if (width && height) {
         let newWidth = width;
         let newHeight = height;
         if (newWidth > maxWidth) {
-          newHeight = maxWidth / newWidth * newHeight;
+          newHeight = (maxWidth / newWidth) * newHeight;
           newWidth = maxWidth;
         }
-        style += `width:${newWidth}px;`
-        style += `height:${newHeight}px;`
+        style += `width:${newWidth}px;`;
+        style += `height:${newHeight}px;`;
       }
       this.$msgbox({
         title: "图片预览",
@@ -157,7 +160,7 @@ export default {
               attrs: {
                 src: `${url}-90-0-0.${type}`
               },
-              style,
+              style
             },
             ""
           )
@@ -176,16 +179,18 @@ export default {
         return;
       }
       const url = urlPrefix + IMAGES_PREVIEW.replace(":file", file);
-      // 来源自：https://juejin.im/post/5a94f8eff265da4e9b593c29
-      const input = document.createElement("input");
-      input.setAttribute("readonly", "readonly");
-      input.setAttribute("value", `${location.origin}${url}-90-0-0.${type}`);
-      document.body.appendChild(input);
-      input.select();
-      input.setSelectionRange(0, 9999);
-      document.execCommand("copy");
+      copy(`${location.origin}${url}-90-0-0.${type}`);
       this.$message("已复制图片链接");
-      document.body.removeChild(input);
+    },
+    clip(data) {
+      const { file, type } = data;
+      const url =
+        urlPrefix +
+        IMAGES_CLIP.replace(":file", file).replace(":clip", "center");
+      const width = Number.parseInt(data.width / 2);
+      const height = Number.parseInt(data.height / 2);
+      copy(`${location.origin}${url}-90-${width}-${height}.${type}`);
+      this.$message("已复制图片剪辑链接（截取居中部分）");
     },
     handleSizeChange(val) {
       saveListFilePageSize(val);

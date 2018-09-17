@@ -50,3 +50,16 @@ export function formatDate(str) {
   const seconds = fill(date.getSeconds());
   return `${date.getFullYear()}-${month}-${day} ${hours}:${mintues}:${seconds}`;
 }
+
+// copy copy the value
+export function copy(value) {
+  // 来源自：https://juejin.im/post/5a94f8eff265da4e9b593c29
+  const input = document.createElement("input");
+  input.setAttribute("readonly", "readonly");
+  input.setAttribute("value", value);
+  document.body.appendChild(input);
+  input.select();
+  input.setSelectionRange(0, 9999);
+  document.execCommand("copy");
+  document.body.removeChild(input);
+}

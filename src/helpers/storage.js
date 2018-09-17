@@ -1,15 +1,15 @@
 const listFilePageSizeKey = "list-file-page-size";
 export function saveListFilePageSize(size) {
   if (localStorage) {
-    localStorage.setItem(listFilePageSizeKey, size)
+    localStorage.setItem(listFilePageSizeKey, size);
   }
-  return
+  return;
 }
 
 export function getListFilePageSize() {
   let pageSize = 10;
   if (localStorage) {
-    const v = localStorage.getItem(listFilePageSizeKey)
+    const v = localStorage.getItem(listFilePageSizeKey);
     if (v) {
       pageSize = Number.parseInt(v, 10);
     }

@@ -13,7 +13,7 @@
 <style lang="sass" scoped>
 @import "@/styles/const.sass"
 .home
-  padding: 15px
+  padding: 30px 80px
   color: $COLOR_BLACK
   ul
     font-size: 14px
