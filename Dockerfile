@@ -11,9 +11,10 @@ RUN apk update \
 
 FROM alpine
 
-RUN apk add --no-cache ca-certificates
-
 COPY --from=builder /go/src/github.com/vicanso/tiny-site/tiny-site  /usr/local/bin/tiny-site 
+COPY --from=builder /go/src/github.com/vicanso/tiny-site/configs /configs
+
+RUN apk add --no-cache ca-certificates
 
 CMD [ "tiny-site" ]
 

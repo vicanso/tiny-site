@@ -9,6 +9,7 @@ session:
   #   maxAge: 24h
   #   path: /
   expires: 24h
+  # 此keys用于cookie的合法校验，请在正式环境中，另外生成此keys并保密
   keys:
     - cuttlefish
     - tree.xie
@@ -20,7 +21,7 @@ upload:
   # 临时缓存文件的大小
   cacheSize: 1024
 tiny:
-  address: "127.0.0.1:3016"
+  address: 127.0.0.1:3016
   # GUETZLI的处理时间特别慢，此超时还需要根据需要调整
   timeout: 10s
   maxWidth: 2048

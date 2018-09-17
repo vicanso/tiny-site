@@ -20,6 +20,7 @@ type (
 	// OptimOptions optim options
 	OptimOptions struct {
 		Type      string
+		ClipType  string
 		ImageType string
 		Width     int
 		Height    int
@@ -41,6 +42,20 @@ func init() {
 	}
 }
 
+// GetClipType get clip type
+func GetClipType(str string) pb.ClipType {
+	switch str {
+	case "center":
+		return pb.ClipType_CENTER
+	case "lt":
+		return pb.ClipType_LT
+	case "tc":
+		return pb.ClipType_TC
+	default:
+		return pb.ClipType_NONE
+	}
+}
+
 func getCompressRequest(opts *OptimOptions) (in *pb.CompressRequest) {
 	in = &pb.CompressRequest{
 		Quality: uint32(opts.Quality),
@@ -52,6 +67,9 @@ func getCompressRequest(opts *OptimOptions) (in *pb.CompressRequest) {
 	in.Type = pb.Type(pb.Type_value[t])
 	t = strings.ToUpper(opts.ImageType)
 	in.ImageType = pb.Type(pb.Type_value[t])
+	if opts.ClipType != "" {
+		in.ClipType = GetClipType(opts.ClipType)
+	}
 	return
 }
 

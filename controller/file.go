@@ -128,6 +128,7 @@ func init() {
 	files.Add("GET", "/v1/categories", ctrl.getCategories)
 	files.Add("GET", "/v1", ctrl.list)
 
+	images.Add("GET", "/v1/:clip/:file", middleware.IsNilQuery, ctrl.get)
 	images.Add("GET", "/v1/:file", middleware.IsNilQuery, ctrl.get)
 }
 
@@ -241,6 +242,7 @@ func (c *fileCtrl) save(ctx iris.Context) {
 // get get file
 func (c *fileCtrl) get(ctx iris.Context) {
 	fileParam := ctx.Params().Get("file")
+	clipType := ctx.Params().Get("clip")
 	ext := filepath.Ext(fileParam)
 	params := strings.Split(fileParam[0:len(fileParam)-len(ext)], "-")
 	if len(params) != 4 || ext == "" {
@@ -252,6 +254,17 @@ func (c *fileCtrl) get(ctx iris.Context) {
 		})
 		return
 	}
+
+	if clipType != "" && service.GetClipType(clipType) == 0 {
+		resErr(ctx, &util.HTTPError{
+			StatusCode: http.StatusBadRequest,
+			Category:   util.ErrCategoryValidate,
+			Code:       util.ErrCodeFile,
+			Message:    "clip type is wrong",
+		})
+		return
+	}
+
 	file := params[0]
 
 	f := model.File{
@@ -277,6 +290,9 @@ func (c *fileCtrl) get(ctx iris.Context) {
 		opts.Quality > maxImageQuality {
 		resErr(ctx, errImageOptimOverLimit)
 		return
+	}
+	if clipType != "" {
+		opts.ClipType = clipType
 	}
 
 	buf, err := service.Optim(opts)
