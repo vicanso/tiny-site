@@ -49,6 +49,8 @@ GRANT ALL PRIVILEGES ON DATABASE tiny-site to 账号;
 
 ```yaml
 urlPrefix: /api
+# 如果没有部署redis，则设置为空，session会保存在内存中（重启则失效）
+redis: ""
 db:
   uri: postgres://user:pwd@127.0.0.1:5432/tiny-site?connect_timeout=5&sslmode=disable
 tiny:

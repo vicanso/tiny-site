@@ -308,7 +308,11 @@ func (c *fileCtrl) get(ctx iris.Context) {
 	if opts.Type == "guetzli" {
 		ext = ".jpeg"
 	}
-	ctx.ContentType(mime.TypeByExtension(ext))
+	if ext == ".webp" {
+		util.SetHeader(ctx, "Content-Type", "image/webp")
+	} else {
+		ctx.ContentType(mime.TypeByExtension(ext))
+	}
 	res(ctx, buf)
 }
 
