@@ -1,6 +1,6 @@
 <template lang="pug">
 .login
-  h4 登录
+  h4 注 册
   el-form.form(
     ref="form"
     :model="form"
@@ -46,12 +46,12 @@
   left: 50%
   top: 50%
   margin-left: -$width / 2
-  margin-top: -150px
+  margin-top: -250px
   border: $GRAY_BORDER
   background-color: $COLOR_WHITE
 h4
   margin: 0
-  line-height: 2em
+  line-height: 2.5em
   background-color: $COLOR_BLACK
   color: $COLOR_WHITE
   padding: 5px 15px

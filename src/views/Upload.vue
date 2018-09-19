@@ -94,7 +94,7 @@ $uploadWidth: 800px
   position: absolute
   top: 50%
   left: 50%
-  margin-top: -200px
+  margin-top: -250px
   width: $uploadWidth
   margin-left: -$uploadWidth / 2 
   background-color: $COLOR_WHITE
