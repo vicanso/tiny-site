@@ -55,7 +55,8 @@ const state = {
     categories: null,
     list: [],
     currentCategory: "",
-    count: 0
+    count: 0,
+    urlPrefix: ""
   }
 };
 
@@ -78,6 +79,7 @@ const mutations = {
       state.file.count = 0;
       return;
     }
+    state.file.urlPrefix = data.urlPrefix;
     data.files.forEach(function(item) {
       item.createdAt = formatDate(item.createdAt);
       item.maxAge = ms(ms(item.maxAge), { long: true });

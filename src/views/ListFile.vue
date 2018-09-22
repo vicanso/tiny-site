@@ -124,7 +124,8 @@ export default {
   computed: {
     ...mapState({
       files: ({ file }) => file.list,
-      fileCount: ({ file }) => file.count
+      fileCount: ({ file }) => file.count,
+      fileURLPrefix: ({ file }) => file.urlPrefix
     })
   },
   methods: {
@@ -179,7 +180,8 @@ export default {
         return;
       }
       const url = urlPrefix + IMAGES_PREVIEW.replace(":file", file);
-      copy(`${location.origin}${url}-90-0-0.${type}`);
+      const prefix = this.fileURLPrefix || location.origin;
+      copy(`${prefix}${url}-90-0-0.${type}`);
       this.$message("已复制图片链接");
     },
     clip(data) {
@@ -189,7 +191,8 @@ export default {
         IMAGES_CLIP.replace(":file", file).replace(":clip", "center");
       const width = Number.parseInt(data.width / 2);
       const height = Number.parseInt(data.height / 2);
-      copy(`${location.origin}${url}-90-${width}-${height}.${type}`);
+      const prefix = this.fileURLPrefix || location.origin;
+      copy(`${prefix}${url}-90-${width}-${height}.${type}`);
       this.$message("已复制图片剪辑链接（截取居中部分）");
     },
     handleSizeChange(val) {

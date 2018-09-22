@@ -10,7 +10,7 @@
     li 使用CDN回源机制，提升性能，避免相同图片需要多次处理
     li 分类查询接口缓存1分钟，因此如果是新增加的分类需要等最长一分钟在列表中才会有
   
-  p 注：我配置了七牛CDN回源，大家可以体验一下，如`http://tiny.aslant.site/api/images/v1/center/01CQPFKV5WYG8VD4QTVN5PYYJW-90-480-300.webp`，则使用`http://o3tra507p.qnssl.com/api/images/v1/center/01CQPFKV5WYG8VD4QTVN5PYYJW-90-480-300.webp`，在图片第一次使用时由于CDN无数据，需要从源头拉取会较慢。
+  p 注：我配置了七牛CDN回源，大家可以体验一下，如`http://tiny.aslant.site/api/images/v1/center/01CQPFKV5WYG8VD4QTVN5PYYJW-90-480-300.webp`，则使用`http://oidm8hv4x.qnssl.com/api/images/v1/center/01CQPFKV5WYG8VD4QTVN5PYYJW-90-480-300.webp`，在图片第一次使用时由于CDN无数据，需要从源头拉取会较慢。
 
 </template>
 
