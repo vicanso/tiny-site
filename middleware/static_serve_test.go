@@ -61,7 +61,7 @@ func TestStaticServe(t *testing.T) {
 		}
 		fn := StaticServe(conf)
 		r := httptest.NewRequest(http.MethodGet, "http://localhost/?file=index.html", nil)
-		r.Header.Set("If-None-Match", `"1d8-DCzxbxGg1yyYg5fWYJnQAu3Gtn0="`)
+		r.Header.Set("If-None-Match", "*")
 		w := httptest.NewRecorder()
 		ctx := util.NewContext(w, r)
 		fn(ctx)
@@ -76,7 +76,7 @@ func TestStaticServe(t *testing.T) {
 			Compression: true,
 		}
 		fn := StaticServe(conf)
-		r := httptest.NewRequest(http.MethodGet, "http://localhost/?file=normalize.css", nil)
+		r := httptest.NewRequest(http.MethodGet, "http://localhost/?file=index.html", nil)
 		w := httptest.NewRecorder()
 		ctx := util.NewContext(w, r)
 		fn(ctx)

@@ -28,3 +28,5 @@ tiny:
   maxHeight: 2048
   maxQuality: 100
   maxFileSize: 1449616
+  # 生成的图片地址前缀，可以指定为CDN再回源
+  # imageURLPrefix: http://oidm8hv4x.qnssl.com

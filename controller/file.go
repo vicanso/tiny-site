@@ -47,6 +47,12 @@ var (
 		Code:       util.ErrCodeFile,
 		Message:    "the file is not found",
 	}
+	errImageTypeNotSupport = &util.HTTPError{
+		StatusCode: http.StatusBadRequest,
+		Category:   util.ErrCategoryValidate,
+		Code:       util.ErrCodeFile,
+		Message:    "not support the image type",
+	}
 	errImageOptimOverLimit = &util.HTTPError{
 		StatusCode: http.StatusBadRequest,
 		Category:   util.ErrCategoryValidate,
@@ -58,6 +64,13 @@ var (
 	maxImageQuality = 100
 	maxCacheSize    = 1024
 	maxFileSize     = 1024 * 1024
+	// 图片类型
+	imageTypes = []string{
+		"png",
+		"jpeg",
+		"webp",
+	}
+	imageURLPrefix = ""
 )
 
 type (
@@ -108,6 +121,11 @@ func init() {
 	v = viper.GetInt("tiny.maxFileSize")
 	if v != 0 {
 		maxFileSize = v
+	}
+
+	prefix := viper.GetString("tiny.imageURLPrefix")
+	if prefix != "" {
+		imageURLPrefix = prefix
 	}
 
 	files := router.NewGroup("/files")
@@ -284,6 +302,17 @@ func (c *fileCtrl) get(ctx iris.Context) {
 		return
 	}
 	opts.Type = ext[1:]
+	found := false
+	for _, t := range imageTypes {
+		if t == opts.Type {
+			found = true
+			break
+		}
+	}
+	if !found {
+		resErr(ctx, errImageTypeNotSupport)
+		return
+	}
 	opts.Data = f.Data
 	if opts.Width > maxImageWidth ||
 		opts.Height > maxImageHeight ||
@@ -361,8 +390,9 @@ func (c *fileCtrl) list(ctx iris.Context) {
 		return
 	}
 	m := map[string]interface{}{
-		"files": files,
-		"count": count,
+		"files":     files,
+		"count":     count,
+		"urlPrefix": imageURLPrefix,
 	}
 	res(ctx, m)
 }

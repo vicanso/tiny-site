@@ -12,10 +12,10 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/kataras/iris"
+	"github.com/vicanso/fresh"
 	"github.com/vicanso/tiny-site/asset"
 	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/util"
-	"github.com/vicanso/fresh"
 )
 
 const (

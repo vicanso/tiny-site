@@ -1,2 +1,4 @@
 # 后端接口公共前缀
 urlPrefix: /api
+tiny:
+  imageURLPrefix: http://oidm8hv4x.qnssl.com
