@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"encoding/base64"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -59,6 +60,12 @@ var (
 		Code:       util.ErrCodeFile,
 		Message:    "image optim over limit",
 	}
+	errTokenIsInvalid = &util.HTTPError{
+		StatusCode: http.StatusBadRequest,
+		Category:   util.ErrCategoryValidate,
+		Code:       util.ErrCodeFile,
+		Message:    "the token is invalid",
+	}
 	maxImageWidth   = 2048
 	maxImageHeight  = 2048
 	maxImageQuality = 100
@@ -71,6 +78,7 @@ var (
 		"webp",
 	}
 	imageURLPrefix = ""
+	adminToken     = ""
 )
 
 type (
@@ -84,6 +92,13 @@ type (
 		FileType string `json:"fileType,omitempty" valid:"in(jpeg|png)"`
 		MaxAge   string `json:"maxAge,omitempty" valid:"matches(^[0-9]+[smh]$)"`
 		File     string `json:"file,omitempty" valid:"runelength(26|26)"`
+	}
+	saveFileByTokenParams struct {
+		Token    string `json:"token,omitempty" valid:"runelength(10|30)"`
+		Category string `json:"category,omitempty" valid:"runelength(2|20)"`
+		FileType string `json:"fileType,omitempty" valid:"in(jpeg|png)"`
+		MaxAge   string `json:"maxAge,omitempty" valid:"matches(^[0-9]+[smh]$)"`
+		Data     string `json:"data,omitempty" valid:"base64"`
 	}
 	listFileParams struct {
 		Category string `json:"category,omitempty" valid:"runelength(2|20)"`
@@ -123,9 +138,14 @@ func init() {
 		maxFileSize = v
 	}
 
-	prefix := viper.GetString("tiny.imageURLPrefix")
-	if prefix != "" {
-		imageURLPrefix = prefix
+	str := viper.GetString("tiny.imageURLPrefix")
+	if str != "" {
+		imageURLPrefix = str
+	}
+
+	str = viper.GetString("adminToken")
+	if str != "" {
+		adminToken = str
 	}
 
 	files := router.NewGroup("/files")
@@ -134,13 +154,18 @@ func init() {
 	ctrl := fileCtrl{}
 	// TODO 添加登录校验
 	files.Add("POST", "/v1/upload", ctrl.upload)
-	// TODO 添加登录校验
 	files.Add(
 		"POST",
 		"/v1",
 		router.SessionHandler,
 		middleware.IsLogined,
 		ctrl.save,
+	)
+	// 使用token的校验上传
+	files.Add(
+		"POST",
+		"/v1/token",
+		ctrl.saveByToken,
 	)
 
 	files.Add("GET", "/v1/categories", ctrl.getCategories)
@@ -169,6 +194,35 @@ func getOptimOptions(params []string) (opts *service.OptimOptions, err error) {
 		Width:   width,
 		Height:  height,
 	}
+	return
+}
+
+func saveImage(buf []byte, params *saveFileParams, creator string) (f *model.File, err error) {
+	reader := bytes.NewReader(buf)
+
+	var img image.Image
+	if params.FileType == "png" {
+		img, err = png.Decode(reader)
+	} else {
+		// 暂时只支持两种类型
+		img, err = jpeg.Decode(reader)
+	}
+	if err != nil {
+		return
+	}
+	b := img.Bounds()
+	f = &model.File{
+		File:     util.GenUlid(),
+		Type:     params.FileType,
+		Data:     buf,
+		Category: params.Category,
+		Size:     len(buf),
+		Width:    b.Dx(),
+		Height:   b.Dy(),
+		MaxAge:   params.MaxAge,
+		Creator:  creator,
+	}
+	err = f.Save()
 	return
 }
 
@@ -220,33 +274,8 @@ func (c *fileCtrl) save(ctx iris.Context) {
 		return
 	}
 	buf := data.([]byte)
-	reader := bytes.NewReader(buf)
-
-	var img image.Image
-	if params.FileType == "png" {
-		img, err = png.Decode(reader)
-	} else {
-		// 暂时只支持两种类型
-		img, err = jpeg.Decode(reader)
-	}
-	if err != nil {
-		resErr(ctx, err)
-		return
-	}
-	b := img.Bounds()
 	sess := getSession(ctx)
-	f := model.File{
-		File:     util.GenUlid(),
-		Type:     params.FileType,
-		Data:     buf,
-		Category: params.Category,
-		Size:     len(buf),
-		Width:    b.Dx(),
-		Height:   b.Dy(),
-		MaxAge:   params.MaxAge,
-		Creator:  sess.GetString(cs.SessionAccountField),
-	}
-	err = f.Save()
+	f, err := saveImage(buf, params, sess.GetString(cs.SessionAccountField))
 	if err != nil {
 		resErr(ctx, err)
 		return
@@ -395,4 +424,36 @@ func (c *fileCtrl) list(ctx iris.Context) {
 		"urlPrefix": imageURLPrefix,
 	}
 	res(ctx, m)
+}
+
+// saveByToken save the file
+func (c *fileCtrl) saveByToken(ctx iris.Context) {
+	params := &saveFileByTokenParams{}
+	err := validate(params, getRequestBody(ctx))
+	if err != nil {
+		resErr(ctx, err)
+		return
+	}
+	if adminToken == "" || params.Token != adminToken {
+		resErr(ctx, errTokenIsInvalid)
+		return
+	}
+	buf, err := base64.StdEncoding.DecodeString(params.Data)
+	if err != nil {
+		resErr(ctx, err)
+		return
+	}
+	saveParmas := &saveFileParams{
+		Category: params.Category,
+		FileType: params.FileType,
+		MaxAge:   params.MaxAge,
+	}
+	f, err := saveImage(buf, saveParmas, "admin")
+	if err != nil {
+		resErr(ctx, err)
+		return
+	}
+	// 移除data，减少返回无用数据
+	f.Data = nil
+	resCreated(ctx, f)
 }
