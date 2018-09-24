@@ -49,14 +49,19 @@ GRANT ALL PRIVILEGES ON DATABASE tiny-site to 账号;
 
 ```yaml
 urlPrefix: /api
+# 如果需要使用内部接口上传图片，则需要配置token
+adminToken: vUdaYHF0rC7RAHa3FeMj
 # 如果没有部署redis，则设置为空，session会保存在内存中（重启则失效）
 redis: ""
 db:
   uri: postgres://user:pwd@127.0.0.1:5432/tiny-site?connect_timeout=5&sslmode=disable
 tiny:
   address: 127.0.0.1:3016
+  # 如果有做CDN回源，则配置此属性
+  imageURLPrefix: http://oidm8hv4x.qnssl.com
 session:
   keys:
+    # 此key用于校验生成的cookie是否合法，需要生成新的随机串
     - aVOHyH
 ```
 
