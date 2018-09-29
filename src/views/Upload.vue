@@ -140,7 +140,10 @@ export default {
   data() {
     return {
       upload: urlPrefix + FILES_UPLOAD,
-      form: {},
+      form: {
+        id: "",
+        fileType: ""
+      },
       fileTypeList: ["jpeg", "png"],
       maxAgeList: [
         {
@@ -199,6 +202,11 @@ export default {
     },
     handleSuccess(res) {
       this.form.id = res.id;
+      let fileType = res.fileType;
+      if (fileType == "jpg") {
+        fileType = "jpeg";
+      }
+      this.form.fileType = fileType;
     },
     handleExceed() {
       this.xError("请先移除当前已上传文件");
