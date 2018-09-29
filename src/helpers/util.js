@@ -18,6 +18,9 @@ export function getErrorMessage(err) {
   let message = err;
   if (err && err.response) {
     const { data, headers } = err.response;
+    if (data.message) {
+      message = data.message;
+    }
     const id = headers["x-response-id"];
     if (data.code) {
       // eslint-disable-next-line
