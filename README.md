@@ -4,6 +4,8 @@
 
 管理后面的前端部分代码在`site`分支中单独开发管理，生成编译后的文件放在`assets`目录中与程序一起打包应用。
 
+具体的使用场景可以阅读文章：[tiny-您的图片实时优化专家](https://github.com/vicanso/articles/blob/master/tiny.md)
+
 
 ## static
 
