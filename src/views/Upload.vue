@@ -65,6 +65,13 @@
           :value="item.value"
         )
     el-form-item(
+      label="图片名称"
+    )
+      el-input.input(
+        v-model="form.fileName"
+        placeholder="自定义文件名，需唯一，选填"
+      )
+    el-form-item(
       label="自定义"
     )
       el-input.input(
@@ -94,7 +101,7 @@ $uploadWidth: 800px
   position: absolute
   top: 50%
   left: 50%
-  margin-top: -250px
+  margin-top: -280px
   width: $uploadWidth
   margin-left: -$uploadWidth / 2 
   background-color: $COLOR_WHITE
@@ -218,7 +225,7 @@ export default {
       this.reset();
     },
     async save() {
-      const { fileType, id, customCategory, maxAge } = this.form;
+      const { fileType, id, customCategory, maxAge, fileName } = this.form;
       let category = this.form.category;
       if (customCategory) {
         category = customCategory;
@@ -232,6 +239,7 @@ export default {
         const res = await this.fileSave({
           id,
           fileType,
+          fileName,
           category,
           maxAge
         });

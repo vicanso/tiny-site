@@ -12,13 +12,17 @@ const fileListCategory = async ({ commit }) => {
   commit(FILE_CATEGORIES, res.data.categories);
 };
 
-const fileSave = async (tmp, { id, fileType, category, maxAge }) => {
-  const res = await request.post(FILES, {
+const fileSave = async (tmp, { id, fileType, category, maxAge, fileName }) => {
+  const postData = {
     file: id,
     category,
     fileType,
     maxAge
-  });
+  };
+  if (fileName) {
+    postData.fileName = fileName;
+  }
+  const res = await request.post(FILES, postData);
   return res;
 };
 
