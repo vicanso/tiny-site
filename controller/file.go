@@ -92,6 +92,7 @@ type (
 		FileType string `json:"fileType,omitempty" valid:"in(jpeg|png)"`
 		MaxAge   string `json:"maxAge,omitempty" valid:"matches(^[0-9]+[smh]$)"`
 		File     string `json:"file,omitempty" valid:"runelength(26|26)"`
+		FileName string `json:"fileName,omitempty" valid:"runelength(2|26),optional"`
 	}
 	saveFileByTokenParams struct {
 		Token    string `json:"token,omitempty" valid:"runelength(10|30)"`
@@ -211,8 +212,12 @@ func saveImage(buf []byte, params *saveFileParams, creator string) (f *model.Fil
 		return
 	}
 	b := img.Bounds()
+	fileName := params.FileName
+	if fileName == "" {
+		fileName = util.GenUlid()
+	}
 	f = &model.File{
-		File:     util.GenUlid(),
+		File:     fileName,
 		Type:     params.FileType,
 		Data:     buf,
 		Category: params.Category,
