@@ -47,7 +47,15 @@ const fileList = async (
     params
   });
   debug(res);
-  commit(FILE_LIST, res.data);
+  commit(
+    FILE_LIST,
+    Object.assign(
+      {
+        skip
+      },
+      res.data
+    )
+  );
 };
 
 const fileCacheRemove = async ({ commit }) => {
@@ -83,12 +91,13 @@ const mutations = {
       state.file.count = 0;
       return;
     }
+    const startIndex = data.skip;
     state.file.urlPrefix = data.urlPrefix;
-    data.files.forEach(function(item) {
+    data.files.forEach(function(item, i) {
       item.createdAt = formatDate(item.createdAt);
       item.maxAge = ms(ms(item.maxAge), { long: true });
       item.size = bytes(item.size);
-      state.file.list.push(item);
+      state.file.list[startIndex + i] = item;
     });
     if (data.count >= 0) {
       state.file.count = data.count;
