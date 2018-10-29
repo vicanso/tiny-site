@@ -59,7 +59,9 @@ func main() {
 		Max: 1000,
 	}))
 
-	app.Use(middleware.NewJSONParser(middleware.JSONParserConfig{}))
+	app.Use(middleware.NewJSONParser(middleware.JSONParserConfig{
+		Limit: 1024 * 1024,
+	}))
 
 	// static file
 	assetIns := asset.New()
