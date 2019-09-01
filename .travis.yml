@@ -1,0 +1,22 @@
+language: go
+sudo: required
+
+go:
+  - "1.12"
+
+services:
+  - docker
+
+before_install:
+  - docker pull redis:alpine
+  - docker run -p 6379:6379 -d redis:alpine
+
+script:
+  - env GO111MODULE=on make test
+
+after_success:
+  - docker build -t tiny-site .
+  - docker tag tiny-site $DOCKER_USERNAME/tiny-site:latest
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - docker push $DOCKER_USERNAME/tiny-site:latest
+  - docker images
