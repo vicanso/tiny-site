@@ -85,3 +85,15 @@ func ContainsString(arr []string, str string) (found bool) {
 	}
 	return
 }
+
+// UserRoleIsValid check user rols is valid
+func UserRoleIsValid(validRoles []string, userRoles []string) bool {
+	valid := false
+	for _, role := range validRoles {
+		if ContainsString(userRoles, role) {
+			valid = true
+			break
+		}
+	}
+	return valid
+}

@@ -22,7 +22,7 @@ const { Option } = Select;
 const editMode = "edit";
 
 const allRole = "all";
-const roles = [allRole, "su", "admin"];
+const roles = ["su", "admin"];
 
 class UserList extends React.Component {
   state = {
@@ -145,8 +145,12 @@ class UserList extends React.Component {
     ];
     return <Table className="users" dataSource={users} columns={columns} />;
   }
-  renderRoles() {
-    return roles.map(item => (
+  renderRoles(includeAll) {
+    const arr = [].concat(roles);
+    if (includeAll) {
+      arr.unshift(allRole);
+    }
+    return arr.map(item => (
       <Option key={item} value={item}>
         {item}
       </Option>
@@ -172,7 +176,7 @@ class UserList extends React.Component {
                   });
                 }}
               >
-                {this.renderRoles()}
+                {this.renderRoles(true)}
               </Select>
               <Search
                 className="keyword"

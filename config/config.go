@@ -265,3 +265,8 @@ func GetMailConfig() MailConfig {
 		Password: os.Getenv(viper.GetString("mail.password")),
 	}
 }
+
+// GetTinyAddress get tiny service address
+func GetTinyAddress() (address string) {
+	return viper.GetString("tiny.host") + ":" + viper.GetString("tiny.port")
+}

@@ -18,12 +18,12 @@ import (
 	"net/http"
 
 	"github.com/vicanso/elton"
+	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/log"
 	"github.com/vicanso/tiny-site/middleware"
 	"github.com/vicanso/tiny-site/service"
 	"github.com/vicanso/tiny-site/util"
-	"github.com/vicanso/hes"
 
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
@@ -51,6 +51,13 @@ var (
 	configSrv = new(service.ConfigurationSrv)
 	// 用户服务
 	userSrv = new(service.UserSrv)
+	// 文件服务
+	fileSrv = new(service.FileSrv)
+	// admin用户角色
+	adminUserRoles = []string{
+		cs.UserRoleSu,
+		cs.UserRoleAdmin,
+	}
 
 	// 创建新的并发控制中间件
 	newConcurrentLimit = middleware.NewConcurrentLimit
@@ -67,10 +74,7 @@ var (
 	// 判断用户是否未登录
 	shouldAnonymous = elton.Compose(loadUserSession, checkAnonymous)
 	// 判断用户是否admin权限
-	shouldBeAdmin = elton.Compose(loadUserSession, newCheckRoles([]string{
-		cs.UserRoleSu,
-		cs.UserRoleAdmin,
-	}))
+	shouldBeAdmin = elton.Compose(loadUserSession, newCheckRoles(adminUserRoles))
 )
 
 func newTracker(action string) elton.Handler {
@@ -124,13 +128,7 @@ func newCheckRoles(validRoles []string) elton.Handler {
 		}
 		us := service.NewUserSession(c)
 		roles := us.GetRoles()
-		valid := false
-		for _, role := range validRoles {
-			if util.ContainsString(roles, role) {
-				valid = true
-				break
-			}
-		}
+		valid := util.UserRoleIsValid(validRoles, roles)
 		if valid {
 			return c.Next()
 		}

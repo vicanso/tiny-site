@@ -27,9 +27,9 @@ import (
 	"github.com/llgcode/draw2d"
 	"github.com/llgcode/draw2d/draw2dimg"
 	"github.com/llgcode/draw2d/draw2dkit"
+	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/config"
 	"github.com/vicanso/tiny-site/util"
-	"github.com/vicanso/hes"
 )
 
 var (
@@ -171,6 +171,10 @@ func GetCaptcha(fontColor, bgColor string) (info *CaptchaInfo, err error) {
 
 // ValidateCaptcha validate the captch
 func ValidateCaptcha(id, value string) (valid bool, err error) {
+	// 开发环境允许万能验证码
+	if util.IsDevelopment() && value == "1053" {
+		return true, nil
+	}
 	data, err := redisSrv.GetAndDel(captchaKeyPrefix + id)
 	if err != nil {
 		return

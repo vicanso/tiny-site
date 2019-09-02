@@ -21,9 +21,9 @@ import (
 	"github.com/lib/pq"
 	"github.com/vicanso/elton"
 	session "github.com/vicanso/elton-session"
+	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/util"
-	"github.com/vicanso/hes"
 
 	"go.uber.org/zap"
 )
@@ -160,7 +160,7 @@ func (srv *UserSrv) Login(account, password, token string) (u *User, err error) 
 
 // Update update user
 func (srv *UserSrv) Update(user *User, attrs ...interface{}) (err error) {
-	err = pgGetClient().Model(user).Update(attrs).Error
+	err = pgGetClient().Model(user).Update(attrs...).Error
 	return
 }
 

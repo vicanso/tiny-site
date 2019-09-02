@@ -13,7 +13,11 @@
 // limitations under the License.
 package service
 
-import "time"
+import (
+	"time"
+
+	"github.com/jinzhu/gorm"
+)
 
 type (
 	// File file struct
@@ -50,10 +54,15 @@ type (
 		UpdatedAt time.Time  `json:"updatedAt,omitempty"`
 		DeletedAt *time.Time `sql:"index" json:"deletedAt,omitempty"`
 
-		User      string `json:"user,omitempty" gorm:"type:varchar(20);not null;unique_index:idx_file_zone_authorities_account"`
-		Authority int    `json:"authority,omitempty"`
-		Zone      int    `json:"zone,omitempty" gorm:"not null"`
+		User      string `json:"user,omitempty" gorm:"type:varchar(20);not null;unique_index:idx_file_zone_authorities_user_zone"`
+		Authority int    `json:"authority,omitempty" `
+		Zone      int    `json:"zone,omitempty" gorm:"not null;unique_index:idx_file_zone_authorities_user_zone"`
 	}
+	// FileZoneQueryParams file zone query params
+	FileZoneQueryParams struct {
+	}
+	// FileSrv file service
+	FileSrv struct{}
 )
 
 const (
@@ -65,8 +74,88 @@ const (
 	AuthorityReadWrite
 )
 
+var ()
+
 func init() {
 	pgGetClient().AutoMigrate(&File{}).
 		AutoMigrate(&FileZone{}).
 		AutoMigrate(&FileZoneAuthority{})
+}
+
+// Add add file
+func (srv *FileSrv) Add(f *File) (err error) {
+	err = pgCreate(f)
+	return
+}
+
+// AddZone add file zone
+func (srv *FileSrv) AddZone(fz *FileZone) (err error) {
+	err = pgCreate(fz)
+	return
+}
+
+// ListZone list file zone
+func (srv *FileSrv) ListZone() (result []*FileZone, err error) {
+	result = make([]*FileZone, 0)
+	db := pgGetClient()
+	err = db.Find(&result).Error
+	return
+}
+
+// GetZone get file zone
+func (srv *FileSrv) GetZone(conditions *FileZone) (fz *FileZone, err error) {
+	fz = &FileZone{}
+	err = pgGetClient().First(fz, conditions).Error
+	return
+}
+
+// UpdateZone update fie zone
+func (srv *FileSrv) UpdateZone(fz *FileZone, attrs ...interface{}) (err error) {
+	err = pgGetClient().Model(fz).Update(attrs...).Error
+	return
+}
+
+// AddZoneAuthority add file zone authority
+func (srv *FileSrv) AddZoneAuthority(fza *FileZoneAuthority) (err error) {
+	err = pgCreate(fza)
+	return
+}
+
+// UpdateZoneAuthority update file zone authority
+func (srv *FileSrv) UpdateZoneAuthority(fza *FileZoneAuthority, attrs ...interface{}) (err error) {
+	err = pgGetClient().Model(fza).Update(attrs...).Error
+	return
+}
+
+// GetZoneAuthority get file zone authority
+func (srv *FileSrv) GetZoneAuthority(conditions *FileZoneAuthority) (fza *FileZoneAuthority, err error) {
+	fza = &FileZoneAuthority{}
+	err = pgGetClient().First(fza, conditions).Error
+	return
+}
+
+// ZoneWritable check zone wriable
+func (srv *FileSrv) ZoneWritable(user string, zone int) (writable bool, err error) {
+	fza, err := srv.GetZoneAuthority(&FileZoneAuthority{
+		User: user,
+		Zone: zone,
+	})
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			err = nil
+		}
+		return
+	}
+	if fza.Authority == AuthorityReadWrite {
+		writable = true
+	}
+	return
+}
+
+// DeleteZoneAuthorityByID delete file zone authority
+func (srv *FileSrv) DeleteZoneAuthorityByID(id uint) (err error) {
+	err = pgGetClient().Unscoped().Delete(&FileZoneAuthority{
+		ID: id,
+	}).Error
+	return
 }

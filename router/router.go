@@ -48,6 +48,21 @@ func Init(d *elton.Elton) {
 		return nil
 	})
 
+	fileZoneIDReg := regexp.MustCompile(`^[1-9][0-9]{0,3}$`)
+	d.AddValidator("fileZoneID", func(value string) error {
+		if !fileZoneIDReg.MatchString(value) {
+			return hes.New("file zone id should be numbers")
+		}
+		return nil
+	})
+	fileZoneAuthorityReg := regexp.MustCompile(`^[1-9][0-9]{0,4}$`)
+	d.AddValidator("fileZoneAuthorityID", func(value string) error {
+		if !fileZoneAuthorityReg.MatchString(value) {
+			return hes.New("file zone authority id should be numbers")
+		}
+		return nil
+	})
+
 	// 如果用户量增大，需要调整此限制
 	userIDReg := regexp.MustCompile(`^[1-9][0-9]{0,6}$`)
 	d.AddValidator("userID", func(value string) error {

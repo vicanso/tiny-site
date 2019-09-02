@@ -19,26 +19,26 @@ import (
 )
 
 func init() {
-	Add("xLimit", func(i interface{}, _ interface{}) bool {
-		value, ok := i.(string)
-		if !ok {
-			return false
-		}
-		return govalidator.InRangeInt(value, "1", "20")
-	})
-	Add("xOffset", func(i interface{}, _ interface{}) bool {
-		value, ok := i.(string)
-		if !ok {
-			return false
-		}
-		return govalidator.InRangeInt(value, "0", "1000")
+	Add("xFileZoneName", func(i interface{}, _ interface{}) bool {
+		return checkStringLength(i, 4, 20)
 	})
 
-	Add("xDuration", func(i interface{}, _ interface{}) bool {
-		value, ok := i.(string)
-		if !ok {
-			return false
-		}
-		return govalidator.Matches(value, `^[1-9][0-9]*[smh]$`)
+	Add("xFileZone", func(i interface{}, _ interface{}) bool {
+		value := govalidator.ToString(i)
+		return govalidator.Range(value, "1", "1000")
 	})
+
+	Add("xFileZoneAuthority", func(i interface{}, _ interface{}) bool {
+		value := govalidator.ToString(i)
+		return govalidator.IsIn(value, "1", "2")
+	})
+
+	Add("xFileName", func(i interface{}, _ interface{}) bool {
+		return checkStringLength(i, 4, 26)
+	})
+
+	Add("xFileType", func(i interface{}, _ interface{}) bool {
+		return checkASCIIStringLength(i, 1, 5)
+	})
+
 }
