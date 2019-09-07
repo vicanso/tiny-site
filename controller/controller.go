@@ -19,7 +19,6 @@ import (
 
 	"github.com/vicanso/elton"
 	"github.com/vicanso/hes"
-	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/log"
 	"github.com/vicanso/tiny-site/middleware"
 	"github.com/vicanso/tiny-site/service"
@@ -53,11 +52,8 @@ var (
 	userSrv = new(service.UserSrv)
 	// 文件服务
 	fileSrv = new(service.FileSrv)
-	// admin用户角色
-	adminUserRoles = []string{
-		cs.UserRoleSu,
-		cs.UserRoleAdmin,
-	}
+	// 压缩服务
+	optimSrv = new(service.OptimSrv)
 
 	// 创建新的并发控制中间件
 	newConcurrentLimit = middleware.NewConcurrentLimit
@@ -74,7 +70,7 @@ var (
 	// 判断用户是否未登录
 	shouldAnonymous = elton.Compose(loadUserSession, checkAnonymous)
 	// 判断用户是否admin权限
-	shouldBeAdmin = elton.Compose(loadUserSession, newCheckRoles(adminUserRoles))
+	shouldBeAdmin = elton.Compose(loadUserSession, isAdmin)
 )
 
 func newTracker(action string) elton.Handler {
@@ -135,4 +131,17 @@ func newCheckRoles(validRoles []string) elton.Handler {
 		err = errForbidden
 		return
 	}
+}
+
+func isAdmin(c *elton.Context) (err error) {
+	if !isLogin(c) {
+		err = errShouldLogin
+		return
+	}
+	us := service.NewUserSession(c)
+	if us.IsAdmin() {
+		return c.Next()
+	}
+	err = errForbidden
+	return
 }

@@ -33,8 +33,7 @@ func init() {
 	appPath = strings.Join(arr, fileDivide) + fileDivide
 }
 
-// GetStack 获取调用信息
-func GetStack(start, end int) []string {
+func getStack(length int, ignoreMod bool) []string {
 	size := 2 << 10
 	stack := make([]byte, size)
 	runtime.Stack(stack, true)
@@ -46,6 +45,9 @@ func GetStack(start, end int) []string {
 		if index+1 >= max {
 			break
 		}
+		if ignoreMod && !strings.Contains(arr[index+1], appPath) {
+			continue
+		}
 
 		file := strings.Replace(arr[index+1], appPath, "", 1)
 		tmpArr := strings.Split(arr[index], "/")
@@ -53,5 +55,15 @@ func GetStack(start, end int) []string {
 		str := fn + ": " + file
 		result = append(result, str)
 	}
-	return result[start:end]
+	if len(result) < length {
+		return result
+	}
+	return result[:length]
+}
+
+// GetStack 获取调用信息
+func GetStack(max int) []string {
+	// 去除get stack的两个函数调用
+	arr := getStack(max+2, true)
+	return arr[2:]
 }

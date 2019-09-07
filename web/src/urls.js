@@ -20,3 +20,10 @@ export const ROUTERS = `${prefix}/commons/routers`;
 export const RANDOM_KEYS = `${prefix}/commons/random-keys`;
 
 export const CAPTCHA = `${prefix}/commons/captcha`;
+
+export const FILES = `${prefix}/files`;
+export const FILES_LIST = `${FILES}/v1`;
+export const FILES_ZONES_LIST_MINE = `${FILES}/v1/zones/mine`;
+export const FILES_ZONES_LIST = `${FILES}/v1/zones`;
+export const FILES_ZONES_ADD = `${FILES}/v1/zones`;
+export const FILES_ZONES_UPDATE = `${FILES}/v1/zones/:fileZoneID`;

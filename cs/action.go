@@ -29,8 +29,8 @@ const (
 	// ActionConfigurationDelete delete configuration
 	ActionConfigurationDelete = "delete-configuration"
 
-	// ActionFileZoneTransfer transfer file zone
-	ActionFileZoneTransfer = "transfer-file-zone"
+	// ActionFileZoneUpdate update file zone
+	ActionFileZoneUpdate = "update-file-zone"
 	// ActionFileZoneAuthorityAdd add file zone authority
 	ActionFileZoneAuthorityAdd = "add-file-zone-authority"
 	// ActionFileZoneAuthorityDelete delete file zone authority

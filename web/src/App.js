@@ -15,7 +15,10 @@ import {
   USER_PATH,
   USER_LOGIN_RECORDS_PATH,
   HOME_PATH,
-  FILE_ZONE_PATH
+  MY_FILE_ZONE_PATH,
+  FILE_ZONE_PATH,
+  FILE_LIST_PATH,
+  FILE_HANDLER_PATH
 } from "./paths";
 import { USERS_ME } from "./urls";
 import AppMenu from "./components/app_menu";
@@ -30,7 +33,10 @@ import UserList from "./components/user_list";
 import UserLoginRecordList from "./components/user_login_record_list";
 import IPBlockList from "./components/ip_block_list";
 import Home from "./components/home";
+import MyFileZone from "./components/my_file_zone";
 import FileZone from "./components/file_zone";
+import FileList from "./components/file_list";
+import FileHandler from "./components/file_handler";
 
 function NeedLoginRoute({ component: Component, account, roles, ...rest }) {
   return (
@@ -148,10 +154,30 @@ class App extends React.Component {
                 roles={roles}
               />
               <NeedLoginRoute
+                path={MY_FILE_ZONE_PATH}
+                component={MyFileZone}
+                account={account}
+                roles={roles}
+              />
+              <NeedLoginRoute
                 path={FILE_ZONE_PATH}
                 component={FileZone}
                 account={account}
                 roles={roles}
+              />
+              <NeedLoginRoute
+                path={FILE_LIST_PATH}
+                component={FileList}
+                account={account}
+                roles={roles}
+                exact
+              />
+              <NeedLoginRoute
+                path={FILE_HANDLER_PATH}
+                component={FileHandler}
+                account={account}
+                roles={roles}
+                exact
               />
               <Route path={HOME_PATH} component={Home} exact />
             </div>

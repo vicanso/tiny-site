@@ -45,6 +45,14 @@ const (
 )
 
 var (
+	// admin用户角色
+	adminUserRoles = []string{
+		cs.UserRoleSu,
+		cs.UserRoleAdmin,
+	}
+)
+
+var (
 	errAccountOrPasswordInvalid = hes.New("account or password is invalid")
 )
 
@@ -350,6 +358,11 @@ func (u *UserSession) Refresh() error {
 // ClearSessionID clear session id
 func (u *UserSession) ClearSessionID() {
 	u.se.ID = ""
+}
+
+// IsAdmin check user is admin
+func (u *UserSession) IsAdmin() bool {
+	return util.UserRoleIsValid(adminUserRoles, u.GetRoles())
 }
 
 // NewUserSession create a user session

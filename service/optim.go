@@ -1,0 +1,77 @@
+package service
+
+import (
+	"context"
+	"time"
+
+	"github.com/vicanso/tiny-site/config"
+	"google.golang.org/grpc"
+
+	pb "github.com/vicanso/tiny/pb"
+)
+
+var (
+	grpcConn *grpc.ClientConn
+)
+
+const (
+	defaultGRPCTImeout = 10 * time.Second
+)
+
+type (
+	// ImageOptimParams image optim params
+	ImageOptimParams struct {
+		Data       []byte
+		Type       string
+		SourceType string
+		Quality    int
+		Width      int
+		Height     int
+	}
+	// OptimSrv optim service
+	OptimSrv struct{}
+)
+
+func init() {
+	conn, err := grpc.Dial(config.GetTinyAddress(), grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	grpcConn = conn
+}
+
+// Image image optim
+func (srv *OptimSrv) Image(params ImageOptimParams) (data []byte, err error) {
+	clinet := pb.NewOptimClient(grpcConn)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	in := &pb.OptimRequest{
+		Data:    params.Data,
+		Quality: uint32(params.Quality),
+		Width:   uint32(params.Width),
+		Height:  uint32(params.Height),
+	}
+	switch params.Type {
+	case "png":
+		in.Output = pb.Type_PNG
+	case "webp":
+		in.Output = pb.Type_WEBP
+	default:
+		in.Output = pb.Type_JPEG
+	}
+	switch params.SourceType {
+	case "png":
+		in.Source = pb.Type_PNG
+	case "webp":
+		in.Source = pb.Type_WEBP
+	default:
+		in.Source = pb.Type_JPEG
+	}
+
+	reply, err := clinet.DoOptim(ctx, in)
+	if err != nil {
+		return
+	}
+	data = reply.Data
+	return
+}

@@ -12,7 +12,8 @@ import {
   ROUTER_CONFIG_PATH,
   IP_BLOCK_CONFIG_PATH,
   SIGNED_KEYS_CONFIG_PATH,
-  FILE_ZONE_PATH
+  FILE_ZONE_PATH,
+  MY_FILE_ZONE_PATH
 } from "../../paths";
 import "./app_menu.sass";
 
@@ -86,6 +87,11 @@ const fileMenu = {
     </span>
   ),
   children: [
+    {
+      key: "my-filezones",
+      url: MY_FILE_ZONE_PATH,
+      title: "我的文件空间"
+    },
     {
       key: "filezones",
       url: FILE_ZONE_PATH,

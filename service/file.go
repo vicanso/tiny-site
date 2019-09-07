@@ -15,8 +15,6 @@ package service
 
 import (
 	"time"
-
-	"github.com/jinzhu/gorm"
 )
 
 type (
@@ -27,15 +25,16 @@ type (
 		UpdatedAt time.Time  `json:"updatedAt,omitempty"`
 		DeletedAt *time.Time `sql:"index" json:"deletedAt,omitempty"`
 
-		Name    string `json:"name,omitempty" gorm:"type:varchar(26);not null;unique_index:idx_files_name"`
-		MaxAge  string `json:"maxAge,omitempty" gorm:"type:varchar(10)"`
-		Zone    int    `json:"zone,omitempty" gorm:"not null"`
-		Type    string `json:"type,omitempty" gorm:"type:varchar(10)"`
-		Size    int    `json:"size,omitempty"`
-		Width   int    `json:"width,omitempty"`
-		Height  int    `json:"height,omitempty"`
-		Data    []byte `json:"data,omitempty"`
-		Creator string `json:"creator,omitempty" gorm:"type:varchar(20);not null"`
+		Name        string `json:"name,omitempty" gorm:"type:varchar(26);not null;unique_index:idx_files_name"`
+		Description string `json:"description,omitempty"`
+		MaxAge      string `json:"maxAge,omitempty" gorm:"type:varchar(10)"`
+		Zone        int    `json:"zone,omitempty" gorm:"not null"`
+		Type        string `json:"type,omitempty" gorm:"type:varchar(10)"`
+		Size        int    `json:"size,omitempty"`
+		Width       int    `json:"width,omitempty"`
+		Height      int    `json:"height,omitempty"`
+		Data        []byte `json:"data,omitempty"`
+		Creator     string `json:"creator,omitempty" gorm:"type:varchar(20);not null"`
 	}
 	// FileZone file zone
 	FileZone struct {
@@ -44,47 +43,88 @@ type (
 		UpdatedAt time.Time  `json:"updatedAt,omitempty"`
 		DeletedAt *time.Time `sql:"index" json:"deletedAt,omitempty"`
 
-		Name  string `json:"name,omitempty" gorm:"type:varchar(26);not null;unique_index:idx_file_zones_name"`
-		Owner string `json:"owner,omitempty" gorm:"type:varchar(20);not null"`
+		Name        string `json:"name,omitempty" gorm:"type:varchar(26);not null;unique_index:idx_file_zones_name"`
+		Description string `json:"description,omitempty"`
+		Owner       string `json:"owner,omitempty" gorm:"type:varchar(20);not null"`
 	}
-	// FileZoneAuthority file zone authority
-	FileZoneAuthority struct {
-		ID        uint       `gorm:"primary_key" json:"id,omitempty"`
-		CreatedAt time.Time  `json:"createdAt,omitempty"`
-		UpdatedAt time.Time  `json:"updatedAt,omitempty"`
-		DeletedAt *time.Time `sql:"index" json:"deletedAt,omitempty"`
-
-		User      string `json:"user,omitempty" gorm:"type:varchar(20);not null;unique_index:idx_file_zone_authorities_user_zone"`
-		Authority int    `json:"authority,omitempty" `
-		Zone      int    `json:"zone,omitempty" gorm:"not null;unique_index:idx_file_zone_authorities_user_zone"`
-	}
-	// FileZoneQueryParams file zone query params
-	FileZoneQueryParams struct {
+	// FileQueryParams file query params
+	FileQueryParams struct {
+		Limit  int
+		Offset int
+		Zone   int
+		Fields string
+		Sort   string
 	}
 	// FileSrv file service
 	FileSrv struct{}
 )
 
-const (
-	// AuthorityNone none authority
-	AuthorityNone = iota
-	// AuthorityRead read authority
-	AuthorityRead
-	// AuthorityReadWrite read/write authority
-	AuthorityReadWrite
-)
-
-var ()
-
 func init() {
 	pgGetClient().AutoMigrate(&File{}).
-		AutoMigrate(&FileZone{}).
-		AutoMigrate(&FileZoneAuthority{})
+		AutoMigrate(&FileZone{})
+}
+
+// List list file
+func (srv *FileSrv) List(params FileQueryParams) (result []*File, err error) {
+	result = make([]*File, 0)
+	db := pgGetClient()
+	if params.Limit > 0 {
+		db = db.Limit(params.Limit)
+	}
+	if params.Offset > 0 {
+		db = db.Offset(params.Offset)
+	}
+	if params.Fields != "" {
+		db = db.Select(pgFormatSelect(params.Fields))
+	}
+	if params.Sort != "" {
+		db = db.Order(pgFormatOrder(params.Sort))
+	}
+	db = db.Where("zone = (?)", params.Zone)
+	err = db.Find(&result).Error
+	return
+}
+
+// Count count file
+func (srv *FileSrv) Count(params FileQueryParams) (count int, err error) {
+	db := pgGetClient().Model(&File{})
+	err = db.Where("zone = (?)", params.Zone).Count(&count).Error
+	return
 }
 
 // Add add file
 func (srv *FileSrv) Add(f *File) (err error) {
 	err = pgCreate(f)
+	return
+}
+
+// GetByName get file by name
+func (srv *FileSrv) GetByName(name string) (f *File, err error) {
+	f = &File{}
+	err = pgGetClient().First(f, File{
+		Name: name,
+	}).Error
+	return
+}
+
+// FindByID get file by id
+func (srv *FileSrv) FindByID(id uint, args ...string) (f *File, err error) {
+	fields := ""
+	if len(args) > 0 {
+		fields = args[0]
+	}
+	f = &File{}
+	err = pgGetClient().Select(pgFormatSelect(fields)).First(f, File{
+		ID: id,
+	}).Error
+	return
+}
+
+// UpdateByID update by id
+func (srv *FileSrv) UpdateByID(id uint, f *File) (err error) {
+	err = pgGetClient().Model(&File{
+		ID: id,
+	}).Update(f).Error
 	return
 }
 
@@ -95,9 +135,12 @@ func (srv *FileSrv) AddZone(fz *FileZone) (err error) {
 }
 
 // ListZone list file zone
-func (srv *FileSrv) ListZone() (result []*FileZone, err error) {
+func (srv *FileSrv) ListZone(conditions *FileZone) (result []*FileZone, err error) {
 	result = make([]*FileZone, 0)
 	db := pgGetClient()
+	if conditions != nil {
+		db = db.Where(conditions)
+	}
 	err = db.Find(&result).Error
 	return
 }
@@ -112,50 +155,5 @@ func (srv *FileSrv) GetZone(conditions *FileZone) (fz *FileZone, err error) {
 // UpdateZone update fie zone
 func (srv *FileSrv) UpdateZone(fz *FileZone, attrs ...interface{}) (err error) {
 	err = pgGetClient().Model(fz).Update(attrs...).Error
-	return
-}
-
-// AddZoneAuthority add file zone authority
-func (srv *FileSrv) AddZoneAuthority(fza *FileZoneAuthority) (err error) {
-	err = pgCreate(fza)
-	return
-}
-
-// UpdateZoneAuthority update file zone authority
-func (srv *FileSrv) UpdateZoneAuthority(fza *FileZoneAuthority, attrs ...interface{}) (err error) {
-	err = pgGetClient().Model(fza).Update(attrs...).Error
-	return
-}
-
-// GetZoneAuthority get file zone authority
-func (srv *FileSrv) GetZoneAuthority(conditions *FileZoneAuthority) (fza *FileZoneAuthority, err error) {
-	fza = &FileZoneAuthority{}
-	err = pgGetClient().First(fza, conditions).Error
-	return
-}
-
-// ZoneWritable check zone wriable
-func (srv *FileSrv) ZoneWritable(user string, zone int) (writable bool, err error) {
-	fza, err := srv.GetZoneAuthority(&FileZoneAuthority{
-		User: user,
-		Zone: zone,
-	})
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			err = nil
-		}
-		return
-	}
-	if fza.Authority == AuthorityReadWrite {
-		writable = true
-	}
-	return
-}
-
-// DeleteZoneAuthorityByID delete file zone authority
-func (srv *FileSrv) DeleteZoneAuthorityByID(id uint) (err error) {
-	err = pgGetClient().Unscoped().Delete(&FileZoneAuthority{
-		ID: id,
-	}).Error
 	return
 }

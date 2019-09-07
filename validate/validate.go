@@ -24,11 +24,12 @@ import (
 )
 
 var (
-	standardJSON     = jsoniter.ConfigCompatibleWithStandardLibrary
-	paramTagRegexMap = govalidator.ParamTagRegexMap
-	paramTagMap      = govalidator.ParamTagMap
-	customTypeTagMap = govalidator.CustomTypeTagMap
-	errCategory      = "validate"
+	standardJSON         = jsoniter.ConfigCompatibleWithStandardLibrary
+	paramTagRegexMap     = govalidator.ParamTagRegexMap
+	paramTagMap          = govalidator.ParamTagMap
+	customTypeTagMap     = govalidator.CustomTypeTagMap
+	errCategory          = "validate"
+	errJSONParseCategory = "json-parse"
 )
 
 func init() {
@@ -42,6 +43,9 @@ func doValidate(s interface{}, data interface{}) (err error) {
 		case []byte:
 			err = json.Unmarshal(data.([]byte), s)
 			if err != nil {
+				he := hes.Wrap(err)
+				he.Category = errJSONParseCategory
+				err = he
 				return
 			}
 		default:
@@ -64,7 +68,9 @@ func Do(s interface{}, data interface{}) (err error) {
 	err = doValidate(s, data)
 	if err != nil {
 		he := hes.Wrap(err)
-		he.Category = errCategory
+		if he.Category == "" {
+			he.Category = errCategory
+		}
 		err = he
 	}
 	return

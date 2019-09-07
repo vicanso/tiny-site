@@ -11,4 +11,7 @@ export const REGISTER_PATH = "/user/register";
 export const USER_PATH = "/user";
 export const USER_LOGIN_RECORDS_PATH = "/user/login-records";
 
+export const MY_FILE_ZONE_PATH = "/my-filezone";
 export const FILE_ZONE_PATH = "/filezone";
+export const FILE_LIST_PATH = "/file/:fileZoneID";
+export const FILE_HANDLER_PATH = "/file/:fileZoneID/handler";

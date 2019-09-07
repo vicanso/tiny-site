@@ -29,6 +29,7 @@ import (
 	responder "github.com/vicanso/elton-responder"
 	routerLimiter "github.com/vicanso/elton-router-concurrent-limiter"
 	stats "github.com/vicanso/elton-stats"
+	"github.com/vicanso/hes"
 
 	"go.uber.org/zap"
 
@@ -70,6 +71,16 @@ func main() {
 		service.AlarmError("too many uncaught exception")
 	})
 	d.OnError(func(c *elton.Context, err error) {
+		if !util.IsProduction() {
+			he, ok := err.(*hes.Error)
+			if ok {
+				if he.Extra == nil {
+					he.Extra = make(map[string]interface{})
+				}
+				he.Extra["stack"] = util.GetStack(5)
+			}
+		}
+
 		// 可以针对实际场景输出更多的日志信息
 		logger.DPanic("exception",
 			zap.String("ip", c.RealIP()),
@@ -92,6 +103,7 @@ func main() {
 		ip := elton.GetRealIP(req)
 		logger.Info("404",
 			zap.String("ip", ip),
+			zap.String("method", req.Method),
 			zap.String("uri", req.RequestURI),
 		)
 		resp.Header().Set(elton.HeaderContentType, elton.MIMEApplicationJSON)

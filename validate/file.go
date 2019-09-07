@@ -32,6 +32,9 @@ func init() {
 		value := govalidator.ToString(i)
 		return govalidator.IsIn(value, "1", "2")
 	})
+	Add("xFileZoneDesc", func(i interface{}, _ interface{}) bool {
+		return checkStringLength(i, 1, 100)
+	})
 
 	Add("xFileName", func(i interface{}, _ interface{}) bool {
 		return checkStringLength(i, 4, 26)
@@ -40,5 +43,7 @@ func init() {
 	Add("xFileType", func(i interface{}, _ interface{}) bool {
 		return checkASCIIStringLength(i, 1, 5)
 	})
-
+	Add("xFileDesc", func(i interface{}, _ interface{}) bool {
+		return checkStringLength(i, 1, 100)
+	})
 }

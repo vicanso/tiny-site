@@ -20,25 +20,30 @@ import (
 
 func init() {
 	Add("xLimit", func(i interface{}, _ interface{}) bool {
-		value, ok := i.(string)
-		if !ok {
-			return false
-		}
+		value := govalidator.ToString(i)
 		return govalidator.InRangeInt(value, "1", "20")
 	})
 	Add("xOffset", func(i interface{}, _ interface{}) bool {
+		value := govalidator.ToString(i)
+		return govalidator.InRangeInt(value, "0", "1000")
+	})
+	Add("xFields", func(i interface{}, _ interface{}) bool {
 		value, ok := i.(string)
 		if !ok {
 			return false
 		}
-		return govalidator.InRangeInt(value, "0", "1000")
+		return checkASCIIStringLength(value, 1, 100)
+	})
+	Add("xSort", func(i interface{}, _ interface{}) bool {
+		value, ok := i.(string)
+		if !ok {
+			return false
+		}
+		return checkASCIIStringLength(value, 1, 50)
 	})
 
 	Add("xDuration", func(i interface{}, _ interface{}) bool {
-		value, ok := i.(string)
-		if !ok {
-			return false
-		}
+		value := govalidator.ToString(i)
 		return govalidator.Matches(value, `^[1-9][0-9]*[smh]$`)
 	})
 }

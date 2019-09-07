@@ -45,20 +45,39 @@ type (
 		Height int    `json:"height,omitempty"`
 	}
 	createFileParams struct {
-		Name   string `json:"name,omitempty" valid:"xFileName"`
-		MaxAge string `json:"maxAge,omitempty" valid:"xDuration"`
-		Zone   int    `json:"zone,omitempty" valid:"xFileZone"`
-		Type   string `json:"type,omitempty" valid:"xFileType"`
-		Width  int    `json:"width,omitempty" valid:"-"`
-		Height int    `json:"height,omitempty" valid:"-"`
-		Data   string `json:"data,omitempty" valid:"-"`
+		Name        string `json:"name,omitempty" valid:"xFileName"`
+		Description string `json:"description,omitempty" valid:"xFileDesc"`
+		MaxAge      string `json:"maxAge,omitempty" valid:"xDuration"`
+		Zone        int    `json:"zone,omitempty" valid:"xFileZone"`
+		Type        string `json:"type,omitempty" valid:"xFileType"`
+		Width       int    `json:"width,omitempty" valid:"-"`
+		Height      int    `json:"height,omitempty" valid:"-"`
+		Data        string `json:"data,omitempty" valid:"-"`
+	}
+	updateFileParams struct {
+		Description string `json:"description,omitempty" valid:"xFileDesc,optional"`
+		MaxAge      string `json:"maxAge,omitempty" valid:"xDuration,optional"`
+		Type        string `json:"type,omitempty" valid:"xFileType,optional"`
+		Width       int    `json:"width,omitempty" valid:"-"`
+		Height      int    `json:"height,omitempty" valid:"-"`
+		Data        string `json:"data,omitempty" valid:"-"`
+	}
+	listFileParams struct {
+		Zone   string `json:"zone,omitempty" valid:"xFileZone"`
+		Limit  string `json:"limit,omitempty" valid:"xLimit"`
+		Offset string `json:"offset,omitempty" valid:"xOffset"`
+		Fields string `json:"fields,omitempty" valid:"xFields"`
+		Sort   string `json:"sort,omitempty" valid:"xSort,optional"`
 	}
 	createFileZoneParams struct {
-		Name  string `json:"name,omitempty" valid:"xFileZoneName"`
-		Owner string `json:"owner,omitempty" valid:"xUserAccount"`
+		Name        string `json:"name,omitempty" valid:"xFileZoneName"`
+		Description string `json:"description,omitempty" valid:"xFileZoneDesc"`
+		Owner       string `json:"owner,omitempty" valid:"xUserAccount"`
 	}
-	transferFileZoneParams struct {
-		TransferTo string `json:"transferTo,omitempty" valid:"xUserAccount"`
+	updateFileZoneParams struct {
+		Name        string `json:"name,omitempty" valid:"xFileZoneName,optional"`
+		Description string `json:"description,omitempty" valid:"xFileZoneDesc,optional"`
+		Owner       string `json:"owner,omitempty" valid:"xUserAccount,optional"`
 	}
 	createFileZoneAuthorityParams struct {
 		User      string `json:"user,omitempty" valid:"xUserAccount"`
@@ -70,14 +89,23 @@ type (
 )
 
 var (
-	errNotAllowToAdjustFileZone = &hes.Error{
-		Message:    "not allow to adjust file zone",
+	errNotAllowToUpdateFileZone = &hes.Error{
+		Message:    "not allow to update file zone",
 		StatusCode: http.StatusForbidden,
 	}
 	errNoWriteAuthority = &hes.Error{
 		Message:    "not allow to add file to zone",
 		StatusCode: http.StatusForbidden,
 	}
+	errNoReadAuthority = &hes.Error{
+		Message:    "not allow to read file from zone",
+		StatusCode: http.StatusForbidden,
+	}
+	errNotAllowToUpdateFile = &hes.Error{
+		Message:    "not allow to update file",
+		StatusCode: http.StatusForbidden,
+	}
+	errFileDataIsNil     = hes.New("data can't be nil")
 	errFileZoneIDInvalid = hes.New("file zone id is invalid")
 )
 
@@ -90,59 +118,39 @@ func init() {
 	ctrl := fileCtrl{}
 	g := router.NewGroup("/files")
 
+	// 获取文件列表
+	g.GET("/v1", shouldLogined, ctrl.list)
 	// 创建文件
 	g.POST("/v1/upload/save", shouldLogined, ctrl.create)
+	// 上传文件
+	g.POST("/v1/upload", shouldLogined, ctrl.upload)
+	// 更新文件
+	g.PATCH("/v1/upload/:id", shouldLogined, ctrl.updateUpload)
 
-	g.POST("/v1/upload", ctrl.upload)
-
+	// 获取文件空间列表
 	g.GET("/v1/zones", shouldLogined, ctrl.listZone)
+	// 获取我的文件空间列表
+	g.GET("/v1/zones/mine", shouldLogined, ctrl.listMyZone)
 
 	// 创建file zone，只允许admin权限用户创建
 	g.POST("/v1/zones", shouldBeAdmin, ctrl.createZone)
 
-	// file zone拥有者转移
-	g.POST(
-		"/v1/zones/:fileZoneID/transfer",
+	// file zone更新
+	g.PATCH(
+		"/v1/zones/:fileZoneID",
 		shouldLogined,
 		shouldAdminOrFileZoneOwner,
-		newTracker(cs.ActionFileZoneTransfer),
-		ctrl.transferZone,
+		newTracker(cs.ActionFileZoneUpdate),
+		ctrl.updateZone,
 	)
 
-	// 添加file zone的权限
-	g.POST(
-		"/v1/zones/:fileZoneID/authorities",
-		shouldLogined,
-		shouldAdminOrFileZoneOwner,
-		newTracker(cs.ActionFileZoneAuthorityAdd),
-		ctrl.createZoneAuthority,
-	)
-	// 更新file zone权限
-	g.PATCH(
-		"/v1/zones/:fileZoneID/authorities/:fileZoneAuthorityID",
-		shouldLogined,
-		shouldAdminOrFileZoneOwner,
-		shouldAllowToUpdateFIleZoneAuthority,
-		newTracker(cs.ActionFileZoneAuthorityUpdate),
-		ctrl.updateZoneAuthority,
-	)
-	// 删除file zone权限
-	g.DELETE(
-		"/v1/zones/:fileZoneID/authorities/:fileZoneAuthorityID",
-		shouldLogined,
-		shouldAdminOrFileZoneOwner,
-		shouldAllowToUpdateFIleZoneAuthority,
-		newTracker(cs.ActionFileZoneAuthorityDelete),
-		ctrl.deleteZoneAuthority,
-	)
 }
 
 func shouldAdminOrFileZoneOwner(c *elton.Context) (err error) {
 	id, _ := strconv.Atoi(c.Param(fileZoneIDKey))
 	us := service.NewUserSession(c)
-	roles := us.GetRoles()
 	// 如果当前用户不是管理员，需判断是否该空间的owner
-	if !util.UserRoleIsValid(adminUserRoles, roles) {
+	if !us.IsAdmin() {
 		fz, err := fileSrv.GetZone(&service.FileZone{
 			ID: uint(id),
 		})
@@ -150,24 +158,8 @@ func shouldAdminOrFileZoneOwner(c *elton.Context) (err error) {
 			return err
 		}
 		if us.GetAccount() != fz.Owner {
-			return errNotAllowToAdjustFileZone
+			return errNotAllowToUpdateFileZone
 		}
-	}
-	return c.Next()
-}
-
-func shouldAllowToUpdateFIleZoneAuthority(c *elton.Context) (err error) {
-	fileZoneID, _ := strconv.Atoi(c.Param(fileZoneIDKey))
-	fileZoneAuthorityID, _ := strconv.Atoi(c.Param(fileZoneAuthorityIDKey))
-	fza, err := fileSrv.GetZoneAuthority(&service.FileZoneAuthority{
-		ID: uint(fileZoneAuthorityID),
-	})
-	if err != nil {
-		return
-	}
-	if fza.Zone != fileZoneID {
-		err = errFileZoneIDInvalid
-		return
 	}
 	return c.Next()
 }
@@ -178,48 +170,41 @@ func (ctrl fileCtrl) create(c *elton.Context) (err error) {
 	if err != nil {
 		return
 	}
-	// 判断用户是否有该zone的写权限
 	us := service.NewUserSession(c)
 	account := us.GetAccount()
-	writable, err := fileSrv.ZoneWritable(account, params.Zone)
-	if err != nil {
-		return
-	}
-	if !writable {
-		err = errNoWriteAuthority
-		return
-	}
+
 	buf, err := base64.StdEncoding.DecodeString(params.Data)
 	if err != nil {
 		return
 	}
 	if len(buf) == 0 {
-		err = hes.New("data can't be nil")
+		err = errFileDataIsNil
 		return
 	}
 	f := &service.File{
-		Name:    params.Name,
-		MaxAge:  params.MaxAge,
-		Zone:    params.Zone,
-		Type:    params.Type,
-		Size:    len(buf),
-		Width:   params.Width,
-		Height:  params.Height,
-		Data:    buf,
-		Creator: account,
+		Name:        params.Name,
+		MaxAge:      params.MaxAge,
+		Zone:        params.Zone,
+		Type:        params.Type,
+		Size:        len(buf),
+		Width:       params.Width,
+		Height:      params.Height,
+		Data:        buf,
+		Description: params.Description,
+		Creator:     account,
 	}
 	err = fileSrv.Add(f)
 	if err != nil {
 		return
 	}
-	// 响应数据时把data清除
+	// 响应数据时把data清除，节约带宽
 	f.Data = nil
 	c.Created(f)
 	return
 }
 
 func (ctrl fileCtrl) upload(c *elton.Context) (err error) {
-	file, header, err := c.Request.FormFile("filename")
+	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		return
 	}
@@ -258,6 +243,82 @@ func (ctrl fileCtrl) upload(c *elton.Context) (err error) {
 	return
 }
 
+func (ctrl fileCtrl) updateUpload(c *elton.Context) (err error) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return
+	}
+	params := &updateFileParams{}
+	err = validate.Do(params, c.RequestBody)
+	if err != nil {
+		return
+	}
+	f, err := fileSrv.FindByID(uint(id), "creator")
+	if err != nil {
+		return
+	}
+	us := service.NewUserSession(c)
+	account := us.GetAccount()
+	if f.Creator != account {
+		err = errNotAllowToUpdateFile
+		return
+	}
+	buf, err := base64.StdEncoding.DecodeString(params.Data)
+	if err != nil {
+		return
+	}
+
+	err = fileSrv.UpdateByID(uint(id), &service.File{
+		Description: params.Description,
+		MaxAge:      params.MaxAge,
+		Type:        params.Type,
+		Width:       params.Width,
+		Height:      params.Height,
+		Data:        buf,
+		Size:        len(buf),
+	})
+	if err != nil {
+		return
+	}
+	c.NoContent()
+	return
+}
+
+func (ctrl fileCtrl) list(c *elton.Context) (err error) {
+	params := &listFileParams{}
+	err = validate.Do(params, c.Query())
+	if err != nil {
+		return
+	}
+	zone, _ := strconv.Atoi(params.Zone)
+	limit, _ := strconv.Atoi(params.Limit)
+	offset, _ := strconv.Atoi(params.Offset)
+
+	queryParams := service.FileQueryParams{
+		Limit:  limit,
+		Zone:   zone,
+		Offset: offset,
+		Fields: params.Fields,
+		Sort:   params.Sort,
+	}
+	result, err := fileSrv.List(queryParams)
+	if err != nil {
+		return
+	}
+	count := -1
+	if offset == 0 {
+		count, err = fileSrv.Count(queryParams)
+	}
+	c.Body = &struct {
+		Files []*service.File `json:"files,omitempty"`
+		Count int             `json:"count,omitempty"`
+	}{
+		result,
+		count,
+	}
+	return
+}
+
 func (ctrl fileCtrl) createZone(c *elton.Context) (err error) {
 	params := &createFileZoneParams{}
 	err = validate.Do(params, c.RequestBody)
@@ -265,8 +326,9 @@ func (ctrl fileCtrl) createZone(c *elton.Context) (err error) {
 		return
 	}
 	fz := &service.FileZone{
-		Name:  params.Name,
-		Owner: params.Owner,
+		Name:        params.Name,
+		Owner:       params.Owner,
+		Description: params.Description,
 	}
 	err = fileSrv.AddZone(fz)
 	if err != nil {
@@ -276,8 +338,15 @@ func (ctrl fileCtrl) createZone(c *elton.Context) (err error) {
 	return
 }
 
-func (ctrl fileCtrl) listZone(c *elton.Context) (err error) {
-	result, err := fileSrv.ListZone()
+func (ctrl fileCtrl) listMyZone(c *elton.Context) (err error) {
+	var conditions *service.FileZone
+	us := service.NewUserSession(c)
+	if !us.IsAdmin() {
+		conditions = &service.FileZone{
+			Owner: us.GetAccount(),
+		}
+	}
+	result, err := fileSrv.ListZone(conditions)
 	if err != nil {
 		return
 	}
@@ -289,8 +358,21 @@ func (ctrl fileCtrl) listZone(c *elton.Context) (err error) {
 	return
 }
 
-func (ctrl fileCtrl) transferZone(c *elton.Context) (err error) {
-	params := &transferFileZoneParams{}
+func (ctrl fileCtrl) listZone(c *elton.Context) (err error) {
+	result, err := fileSrv.ListZone(nil)
+	if err != nil {
+		return
+	}
+	c.Body = &struct {
+		FileZones []*service.FileZone `json:"fileZones,omitempty"`
+	}{
+		result,
+	}
+	return
+}
+
+func (ctrl fileCtrl) updateZone(c *elton.Context) (err error) {
+	params := &updateFileZoneParams{}
 	err = validate.Do(params, c.RequestBody)
 	if err != nil {
 		return
@@ -299,57 +381,10 @@ func (ctrl fileCtrl) transferZone(c *elton.Context) (err error) {
 	err = fileSrv.UpdateZone(&service.FileZone{
 		ID: uint(id),
 	}, service.FileZone{
-		Owner: params.TransferTo,
+		Name:        params.Name,
+		Description: params.Description,
+		Owner:       params.Owner,
 	})
-	if err != nil {
-		return
-	}
-	c.NoContent()
-	return
-}
-
-func (ctrl fileCtrl) createZoneAuthority(c *elton.Context) (err error) {
-	params := &createFileZoneAuthorityParams{}
-	err = validate.Do(params, c.RequestBody)
-	if err != nil {
-		return
-	}
-	fileZoneID, _ := strconv.Atoi(c.Param(fileZoneIDKey))
-	fza := &service.FileZoneAuthority{
-		User:      params.User,
-		Authority: params.Authority,
-		Zone:      fileZoneID,
-	}
-	err = fileSrv.AddZoneAuthority(fza)
-	if err != nil {
-		return
-	}
-	c.Created(fza)
-	return
-}
-
-func (ctrl fileCtrl) updateZoneAuthority(c *elton.Context) (err error) {
-	params := &updateFileZoneAuthorityParams{}
-	err = validate.Do(params, c.RequestBody)
-	if err != nil {
-		return
-	}
-	fileZoneAuthorityID, _ := strconv.Atoi(c.Param(fileZoneAuthorityIDKey))
-	err = fileSrv.UpdateZoneAuthority(&service.FileZoneAuthority{
-		ID: uint(fileZoneAuthorityID),
-	}, &service.FileZoneAuthority{
-		Authority: params.Authority,
-	})
-	if err != nil {
-		return
-	}
-	c.NoContent()
-	return
-}
-
-func (ctrl fileCtrl) deleteZoneAuthority(c *elton.Context) (err error) {
-	fileZoneAuthorityID, _ := strconv.Atoi(c.Param(fileZoneAuthorityIDKey))
-	err = fileSrv.DeleteZoneAuthorityByID(uint(fileZoneAuthorityID))
 	if err != nil {
 		return
 	}
