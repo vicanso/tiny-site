@@ -6,10 +6,10 @@ go:
 
 services:
   - docker
+  - postgres
+  - redis
 
 before_install:
-  - docker pull redis:alpine
-  - docker run -p 6379:6379 -d redis:alpine
   - psql -c "CREATE DATABASE 'tiny-site';" -U postgres
   - psql -c "CREATE USER vicanso WITH PASSWORD '123456';" -U postgres
   - psql -c "GRANT ALL PRIVILEGES ON DATABASE 'tiny-site' to vicanso;" -U postgres
