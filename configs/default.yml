@@ -15,7 +15,7 @@ postgres:
   host: 127.0.0.1
   port: 5432
   user: vicanso 
-  dbname: tiny-site
+  dbname: tiny
   password: 123456
   sslmode: disable
 
