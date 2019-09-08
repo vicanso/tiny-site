@@ -34,6 +34,7 @@ type (
 		Width       int    `json:"width,omitempty"`
 		Height      int    `json:"height,omitempty"`
 		Data        []byte `json:"data,omitempty"`
+		Thumbnail   []byte `json:"thumbnail,omitempty"`
 		Creator     string `json:"creator,omitempty" gorm:"type:varchar(20);not null"`
 	}
 	// FileZone file zone

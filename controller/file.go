@@ -115,6 +115,11 @@ const (
 	fileZoneAuthorityIDKey = "fileZoneAuthorityID"
 )
 
+const (
+	thumbnailWidth   = 60
+	thumbnailQuality = 70
+)
+
 func init() {
 	ctrl := fileCtrl{}
 	g := router.NewGroup("/files")
@@ -176,8 +181,6 @@ func (ctrl fileCtrl) create(c *elton.Context) (err error) {
 	us := service.NewUserSession(c)
 	account := us.GetAccount()
 
-	// TODO 创建缩略图
-
 	buf, err := base64.StdEncoding.DecodeString(params.Data)
 	if err != nil {
 		return
@@ -186,6 +189,12 @@ func (ctrl fileCtrl) create(c *elton.Context) (err error) {
 		err = errFileDataIsNil
 		return
 	}
+
+	thumbnail, err := ctrl.createThumbnail(buf, params.Type)
+	if err != nil {
+		return
+	}
+
 	f := &service.File{
 		Name:        params.Name,
 		MaxAge:      params.MaxAge,
@@ -195,6 +204,7 @@ func (ctrl fileCtrl) create(c *elton.Context) (err error) {
 		Width:       params.Width,
 		Height:      params.Height,
 		Data:        buf,
+		Thumbnail:   thumbnail,
 		Description: params.Description,
 		Creator:     account,
 	}
@@ -248,6 +258,16 @@ func (ctrl fileCtrl) upload(c *elton.Context) (err error) {
 	return
 }
 
+func (ctrl fileCtrl) createThumbnail(data []byte, t string) ([]byte, error) {
+	return optimSrv.Image(service.ImageOptimParams{
+		Data:       data,
+		Type:       t,
+		SourceType: t,
+		Quality:    thumbnailQuality,
+		Width:      thumbnailWidth,
+	})
+}
+
 func (ctrl fileCtrl) updateUpload(c *elton.Context) (err error) {
 	id, err := strconv.Atoi(c.Param(fileIDKey))
 	if err != nil {
@@ -272,6 +292,10 @@ func (ctrl fileCtrl) updateUpload(c *elton.Context) (err error) {
 	if err != nil {
 		return
 	}
+	thumbnail, err := ctrl.createThumbnail(buf, params.Type)
+	if err != nil {
+		return
+	}
 
 	err = fileSrv.UpdateByID(uint(id), &service.File{
 		Description: params.Description,
@@ -280,6 +304,7 @@ func (ctrl fileCtrl) updateUpload(c *elton.Context) (err error) {
 		Width:       params.Width,
 		Height:      params.Height,
 		Data:        buf,
+		Thumbnail:   thumbnail,
 		Size:        len(buf),
 	})
 	if err != nil {

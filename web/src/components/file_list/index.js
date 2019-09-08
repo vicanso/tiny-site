@@ -17,7 +17,7 @@ class FileList extends React.Component {
     zone: 0,
     sort: "-updatedAt",
     fields:
-      "id,updatedAt,name,maxAge,zone,type,size,width,height,description,creator",
+      "id,updatedAt,name,maxAge,zone,type,size,width,height,description,creator,thumbnail",
     files: null,
     pagination: {
       current: 1,
@@ -106,6 +106,20 @@ class FileList extends React.Component {
         }
       },
       {
+        title: "缩略图",
+        dataIndex: "thumbnail",
+        key: "thumbnail",
+        width: "100px",
+        render: (text, record) => {
+          const { thumbnail } = record;
+          if (!thumbnail) {
+            return;
+          }
+          const data = `data:image/${record.type};base64,${record.thumbnail}`;
+          return <img src={data} />;
+        }
+      },
+      {
         title: "上传者",
         dataIndex: "creator",
         key: "creator",
@@ -114,7 +128,7 @@ class FileList extends React.Component {
       {
         title: "操作",
         key: "op",
-        width: "80px",
+        width: "100px",
         render: (text, record) => {
           if (record.creator !== account) {
             return;
