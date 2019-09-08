@@ -129,11 +129,21 @@ func init() {
 	// 获取文件详情
 	g.GET("/v1/detail/:fileID", shouldLogined, ctrl.detail)
 	// 创建文件
-	g.POST("/v1/upload/save", shouldLogined, ctrl.create)
+	g.POST(
+		"/v1/upload/save",
+		shouldLogined,
+		newTracker(cs.ActionFileAdd),
+		ctrl.create,
+	)
 	// 上传文件
 	g.POST("/v1/upload", shouldLogined, ctrl.upload)
 	// 更新文件
-	g.PATCH("/v1/upload/:fileID", shouldLogined, ctrl.updateUpload)
+	g.PATCH(
+		"/v1/upload/:fileID",
+		shouldLogined,
+		newTracker(cs.ActionFileUpdate),
+		ctrl.updateUpload,
+	)
 
 	// 获取文件空间列表
 	g.GET("/v1/zones", shouldLogined, ctrl.listZone)

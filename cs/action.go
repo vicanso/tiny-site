@@ -29,12 +29,11 @@ const (
 	// ActionConfigurationDelete delete configuration
 	ActionConfigurationDelete = "delete-configuration"
 
+	// ActionFileAdd add file
+	ActionFileAdd = "add-file"
+	// ActionFileUpdate update file
+	ActionFileUpdate = "update-file"
+
 	// ActionFileZoneUpdate update file zone
 	ActionFileZoneUpdate = "update-file-zone"
-	// ActionFileZoneAuthorityAdd add file zone authority
-	ActionFileZoneAuthorityAdd = "add-file-zone-authority"
-	// ActionFileZoneAuthorityDelete delete file zone authority
-	ActionFileZoneAuthorityDelete = "delete-file-zone-authority"
-	// ActionFileZoneAuthorityUpdate update file zone authority
-	ActionFileZoneAuthorityUpdate = "update-file-zone-authority"
 )

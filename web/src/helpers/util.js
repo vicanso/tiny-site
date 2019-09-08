@@ -71,3 +71,21 @@ export function getQueryParams(searcValue, key) {
   });
   return result;
 }
+
+// copy 将内容复制至粘贴板
+export function copy(value, parent) {
+  if (!document.execCommand) {
+    return new Error("该浏览器不支持复制功能");
+  }
+  const input = document.createElement("input");
+  input.value = value;
+  if (parent) {
+    parent.appendChild(input);
+  } else {
+    document.body.appendChild(input);
+  }
+  input.focus();
+  input.select();
+  document.execCommand("Copy", false, null);
+  input.remove();
+}

@@ -6,7 +6,8 @@ import { Link } from "react-router-dom";
 
 import "./file_list.sass";
 import * as fileService from "../../services/file";
-import { getQueryParams } from "../../helpers/util";
+import * as imageService from "../../services/image";
+import { getQueryParams, copy } from "../../helpers/util";
 import { TIME_FORMAT } from "../../vars";
 import { FILE_HANDLER_PATH } from "../../paths";
 
@@ -19,6 +20,7 @@ class FileList extends React.Component {
     fields:
       "id,updatedAt,name,maxAge,zone,type,size,width,height,description,creator,thumbnail",
     files: null,
+    imageConfig: null,
     pagination: {
       current: 1,
       pageSize: 10,
@@ -32,6 +34,17 @@ class FileList extends React.Component {
   }
   componentDidMount() {
     this.fetchFiles();
+    this.fetchConfig();
+  }
+  async fetchConfig() {
+    try {
+      const data = await imageService.getConfig();
+      this.setState({
+        imageConfig: data
+      });
+    } catch (err) {
+      message.error(err.message);
+    }
   }
   async fetchFiles() {
     const { loading, zone, fields, pagination, sort } = this.state;
@@ -116,7 +129,7 @@ class FileList extends React.Component {
             return;
           }
           const data = `data:image/${record.type};base64,${record.thumbnail}`;
-          return <img src={data} />;
+          return <img alt={"thumbnail"} src={data} />;
         }
       },
       {
@@ -128,20 +141,48 @@ class FileList extends React.Component {
       {
         title: "操作",
         key: "op",
-        width: "100px",
+        width: "200px",
         render: (text, record) => {
-          if (record.creator !== account) {
-            return;
-          }
+          let updateLink = null;
           const url =
             FILE_HANDLER_PATH.replace(":fileZoneID", zone) +
             `?name=${zoneName}&fileID=${record.id}`;
-          return (
-            <div className="op">
+          if (record.creator === account) {
+            updateLink = (
               <Link to={url}>
                 <Icon type="edit" />
                 更新
               </Link>
+            );
+          }
+          return (
+            <div className="op">
+              {updateLink}
+              <a
+                style={{
+                  marginLeft: "5px"
+                }}
+                href="/copy"
+                onClick={e => {
+                  e.preventDefault();
+                  const { imageConfig } = this.state;
+                  if (!imageConfig) {
+                    message.error("获取图片相关配置失败，请刷新重试");
+                    return;
+                  }
+                  const file = `${record.name}.${record.type}`;
+                  const url = imageConfig.url.replace(":file", file);
+                  const err = copy(url, e.target);
+                  if (err) {
+                    message.error(`复制失败，${err.message}`);
+                  } else {
+                    message.info("复制文件地址成功");
+                  }
+                }}
+              >
+                <Icon type="copy" />
+                复制
+              </a>
             </div>
           );
         }

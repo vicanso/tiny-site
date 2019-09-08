@@ -31,3 +31,6 @@ export const FILES_ZONES_LIST = `${FILES}/v1/zones`;
 export const FILES_ZONES_ADD = `${FILES}/v1/zones`;
 export const FILES_ZONES_UPDATE = `${FILES}/v1/zones/:fileZoneID`;
 export const FILES_UPLOAD_SAVE = `${FILES}/v1/upload/save`;
+
+export const IMAGES = `${prefix}/images`;
+export const IMAGES_CONFIG = `${IMAGES}/v1/config`;

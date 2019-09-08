@@ -52,6 +52,10 @@ type (
 		User     string
 		Password string
 	}
+	// ImagePreviewConfig image preview config
+	ImagePreviewConfig struct {
+		URL string `json:"url,omitempty"`
+	}
 )
 
 const (
@@ -269,4 +273,11 @@ func GetMailConfig() MailConfig {
 // GetTinyAddress get tiny service address
 func GetTinyAddress() (address string) {
 	return viper.GetString("tiny.host") + ":" + viper.GetString("tiny.port")
+}
+
+// GetImagePreview get image preview config
+func GetImagePreview() ImagePreviewConfig {
+	return ImagePreviewConfig{
+		URL: viper.GetString("imagePreview.url"),
+	}
 }

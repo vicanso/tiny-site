@@ -22,6 +22,7 @@ import (
 
 	"github.com/vicanso/elton"
 	"github.com/vicanso/hes"
+	"github.com/vicanso/tiny-site/config"
 	"github.com/vicanso/tiny-site/router"
 	"github.com/vicanso/tiny-site/service"
 	"github.com/vicanso/tiny-site/util"
@@ -49,11 +50,13 @@ func init() {
 	ctrl := imageCtrl{}
 	g := router.NewGroup("/images")
 
-	g.GET("/v1/preview/:fileZoneID/:file", ctrl.preview)
+	g.GET("/v1/preview/:file", ctrl.preview)
+
+	g.GET("/v1/config", ctrl.config)
+
 }
 
 func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
-	zone, _ := strconv.Atoi(c.Param(fileZoneIDKey))
 	file := c.Param("file")
 	ext := filepath.Ext(file)
 	if ext == "" {
@@ -96,10 +99,6 @@ func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
 	if err != nil {
 		return
 	}
-	if f.Zone != zone {
-		err = errImageZoneIsInvalid
-		return
-	}
 	// 图片转换压缩
 	data, err := optimSrv.Image(service.ImageOptimParams{
 		Data:       f.Data,
@@ -117,5 +116,10 @@ func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
 	}
 	c.SetContentTypeByExt(ext)
 	c.BodyBuffer = bytes.NewBuffer(data)
+	return
+}
+
+func (ctrl imageCtrl) config(c *elton.Context) (err error) {
+	c.Body = config.GetImagePreview()
 	return
 }

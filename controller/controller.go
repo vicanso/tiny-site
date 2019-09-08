@@ -75,11 +75,25 @@ var (
 
 func newTracker(action string) elton.Handler {
 	return tracker.New(tracker.Config{
-		// TODO 添加当前登录用户
 		OnTrack: func(info *tracker.Info, c *elton.Context) {
+			account := ""
+			us := service.NewUserSession(c)
+			if us != nil {
+				account = us.GetAccount()
+			}
+			if info.Form != nil {
+				value := info.Form["data"]
+				if value != nil {
+					str, ok := info.Form["data"].(string)
+					if ok && len(str) > 30 {
+						info.Form["data"] = str[0:30] + "..."
+					}
+				}
+			}
 			logger.Info("tracker",
 				zap.String("action", action),
 				zap.String("cid", info.CID),
+				zap.String("account", account),
 				zap.String("ip", c.RealIP()),
 				zap.String("sid", util.GetSessionID(c)),
 				zap.Int("result", info.Result),
