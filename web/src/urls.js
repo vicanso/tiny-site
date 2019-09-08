@@ -23,7 +23,11 @@ export const CAPTCHA = `${prefix}/commons/captcha`;
 
 export const FILES = `${prefix}/files`;
 export const FILES_LIST = `${FILES}/v1`;
+export const FILES_DETAIL = `${FILES}/v1/detail/:fileID`;
+export const FIELS_UPLOAD = `${FILES}/v1/upload`;
+export const FIELS_UPLOAD_UPDATE = `${FILES}/v1/upload/:fileID`;
 export const FILES_ZONES_LIST_MINE = `${FILES}/v1/zones/mine`;
 export const FILES_ZONES_LIST = `${FILES}/v1/zones`;
 export const FILES_ZONES_ADD = `${FILES}/v1/zones`;
 export const FILES_ZONES_UPDATE = `${FILES}/v1/zones/:fileZoneID`;
+export const FILES_UPLOAD_SAVE = `${FILES}/v1/upload/save`;

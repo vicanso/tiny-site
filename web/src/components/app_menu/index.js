@@ -88,14 +88,14 @@ const fileMenu = {
   ),
   children: [
     {
+      key: "filezones",
+      url: FILE_ZONE_PATH,
+      title: "所有文件空间"
+    },
+    {
       key: "my-filezones",
       url: MY_FILE_ZONE_PATH,
       title: "我的文件空间"
-    },
-    {
-      key: "filezones",
-      url: FILE_ZONE_PATH,
-      title: "文件空间"
     }
   ]
 };

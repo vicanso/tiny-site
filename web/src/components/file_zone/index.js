@@ -60,11 +60,11 @@ class FileZone extends React.Component {
           const addURL = FILE_HANDLER_PATH.replace(":fileZoneID", record.id);
           return (
             <div className="op">
-              <Link to={listURL}>
+              <Link to={`${listURL}?name=${record.name}`}>
                 <Icon type="unordered-list" />
                 浏览
               </Link>
-              <Link to={addURL}>
+              <Link to={`${addURL}?name=${record.name}`}>
                 <Icon type="plus-square" />
                 添加
               </Link>

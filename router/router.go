@@ -40,10 +40,24 @@ func Init(d *elton.Elton) {
 		d.AddGroup(g)
 	}
 
+	createError := func(message string) error {
+		he := hes.New(message)
+		he.Category = "router-param-validate"
+		return he
+	}
+
 	configIDReg := regexp.MustCompile(`^[1-9][0-9]{0,3}$`)
 	d.AddValidator("configID", func(value string) error {
 		if !configIDReg.MatchString(value) {
-			return hes.New("config id should be numbers")
+			return createError("config id should be numbers")
+		}
+		return nil
+	})
+
+	fileIDReg := regexp.MustCompile(`^[1-9][0-9]{0,5}$`)
+	d.AddValidator("fileID", func(value string) error {
+		if !fileIDReg.MatchString(value) {
+			return createError("file id should be numbers")
 		}
 		return nil
 	})
@@ -51,14 +65,14 @@ func Init(d *elton.Elton) {
 	fileZoneIDReg := regexp.MustCompile(`^[1-9][0-9]{0,3}$`)
 	d.AddValidator("fileZoneID", func(value string) error {
 		if !fileZoneIDReg.MatchString(value) {
-			return hes.New("file zone id should be numbers")
+			return createError("file zone id should be numbers")
 		}
 		return nil
 	})
 	fileZoneAuthorityReg := regexp.MustCompile(`^[1-9][0-9]{0,4}$`)
 	d.AddValidator("fileZoneAuthorityID", func(value string) error {
 		if !fileZoneAuthorityReg.MatchString(value) {
-			return hes.New("file zone authority id should be numbers")
+			return createError("file zone authority id should be numbers")
 		}
 		return nil
 	})
@@ -67,7 +81,7 @@ func Init(d *elton.Elton) {
 	userIDReg := regexp.MustCompile(`^[1-9][0-9]{0,6}$`)
 	d.AddValidator("userID", func(value string) error {
 		if !userIDReg.MatchString(value) {
-			return hes.New("user id should be numbers")
+			return createError("user id should be numbers")
 		}
 		return nil
 	})

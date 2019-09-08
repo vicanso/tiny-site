@@ -110,6 +110,7 @@ var (
 )
 
 const (
+	fileIDKey              = "fileID"
 	fileZoneIDKey          = "fileZoneID"
 	fileZoneAuthorityIDKey = "fileZoneAuthorityID"
 )
@@ -120,12 +121,14 @@ func init() {
 
 	// 获取文件列表
 	g.GET("/v1", shouldLogined, ctrl.list)
+	// 获取文件详情
+	g.GET("/v1/detail/:fileID", shouldLogined, ctrl.detail)
 	// 创建文件
 	g.POST("/v1/upload/save", shouldLogined, ctrl.create)
 	// 上传文件
 	g.POST("/v1/upload", shouldLogined, ctrl.upload)
 	// 更新文件
-	g.PATCH("/v1/upload/:id", shouldLogined, ctrl.updateUpload)
+	g.PATCH("/v1/upload/:fileID", shouldLogined, ctrl.updateUpload)
 
 	// 获取文件空间列表
 	g.GET("/v1/zones", shouldLogined, ctrl.listZone)
@@ -172,6 +175,8 @@ func (ctrl fileCtrl) create(c *elton.Context) (err error) {
 	}
 	us := service.NewUserSession(c)
 	account := us.GetAccount()
+
+	// TODO 创建缩略图
 
 	buf, err := base64.StdEncoding.DecodeString(params.Data)
 	if err != nil {
@@ -244,7 +249,7 @@ func (ctrl fileCtrl) upload(c *elton.Context) (err error) {
 }
 
 func (ctrl fileCtrl) updateUpload(c *elton.Context) (err error) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param(fileIDKey))
 	if err != nil {
 		return
 	}
@@ -316,6 +321,16 @@ func (ctrl fileCtrl) list(c *elton.Context) (err error) {
 		result,
 		count,
 	}
+	return
+}
+
+func (ctrl fileCtrl) detail(c *elton.Context) (err error) {
+	id, _ := strconv.Atoi(c.Param(fileIDKey))
+	f, err := fileSrv.FindByID(uint(id), c.QueryParam("fields"))
+	if err != nil {
+		return err
+	}
+	c.Body = f
 	return
 }
 

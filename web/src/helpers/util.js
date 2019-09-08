@@ -49,3 +49,25 @@ function includeRole(roles, checkRoles) {
 export function isAdminUser(roles) {
   return includeRole(roles, [suRole, adminRole]);
 }
+
+// getQueryParams 获取query string的参数
+export function getQueryParams(searcValue, key) {
+  if (!searcValue) {
+    return "";
+  }
+  if (searcValue[0] === "?") {
+    searcValue = searcValue.substring(1);
+  }
+  const arr = searcValue.split("&");
+  let result = "";
+  arr.forEach(item => {
+    if (result) {
+      return;
+    }
+    const tmpArr = item.split("=");
+    if (tmpArr[0] === key) {
+      result = tmpArr[1];
+    }
+  });
+  return result;
+}

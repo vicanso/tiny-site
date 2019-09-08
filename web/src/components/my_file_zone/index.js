@@ -1,6 +1,16 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { Button, Form, Input, Row, Col, message, Spin, Table } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  Row,
+  Col,
+  message,
+  Spin,
+  Table,
+  Card
+} from "antd";
 import moment from "moment";
 
 import "./my_file_zone.sass";
@@ -103,67 +113,72 @@ class MyFileZone extends React.Component {
       return;
     }
     return (
-      <Form className="createForm">
-        <Row gutter={12}>
-          <Col span={12}>
-            <Form.Item label="名称">
-              <Input
-                type="text"
-                placeholder="请输入文件空间名称"
-                defaultValue={fileZoneName}
-                onChange={e => {
-                  this.setState({
-                    fileZoneName: e.target.value.trim()
-                  });
+      <Card size="small" title={"新建文件空间"}>
+        <Form className="createForm">
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item label="名称">
+                <Input
+                  type="text"
+                  placeholder="请输入文件空间名称"
+                  defaultValue={fileZoneName}
+                  onChange={e => {
+                    this.setState({
+                      fileZoneName: e.target.value.trim()
+                    });
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="拥有者">
+                <Input
+                  type="text"
+                  placeholder="请输入文件空间拥有者"
+                  defaultValue={fileZoneOwner}
+                  onChange={e => {
+                    this.setState({
+                      fileZoneOwner: e.target.value.trim()
+                    });
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item label="描述">
+                <TextArea
+                  defaultValue={fileZoneDescription}
+                  autosize={{ minRows: 3, maxRows: 6 }}
+                  type="textarea"
+                  placeholder="请输入文件空间的描述"
+                  onChange={e => {
+                    this.setState({
+                      fileZoneDescription: e.target.value.trim()
+                    });
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Button
+                type="primary"
+                onClick={() => this.handleFileZoneConfirm()}
+              >
+                {mode === updateMode ? "更新" : "确认"}
+              </Button>
+            </Col>
+            <Col span={12}>
+              <Button
+                onClick={() => {
+                  this.goBack();
                 }}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="拥有者">
-              <Input
-                type="text"
-                placeholder="请输入文件空间拥有者"
-                defaultValue={fileZoneOwner}
-                onChange={e => {
-                  this.setState({
-                    fileZoneOwner: e.target.value.trim()
-                  });
-                }}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={24}>
-            <Form.Item label="描述">
-              <TextArea
-                defaultValue={fileZoneDescription}
-                autosize={{ minRows: 3, maxRows: 6 }}
-                type="textarea"
-                placeholder="请输入文件空间的描述"
-                onChange={e => {
-                  this.setState({
-                    fileZoneDescription: e.target.value.trim()
-                  });
-                }}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Button type="primary" onClick={() => this.handleFileZoneConfirm()}>
-              {mode === updateMode ? "更新" : "确认"}
-            </Button>
-          </Col>
-          <Col span={12}>
-            <Button
-              onClick={() => {
-                this.goBack();
-              }}
-            >
-              返回
-            </Button>
-          </Col>
-        </Row>
-      </Form>
+              >
+                返回
+              </Button>
+            </Col>
+          </Row>
+        </Form>
+      </Card>
     );
   }
   renderList() {
