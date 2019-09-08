@@ -10,13 +10,16 @@ services:
 before_install:
   - docker pull redis:alpine
   - docker run -p 6379:6379 -d redis:alpine
+  - psql -c "CREATE DATABASE tiny-site;" -U postgres
+  - psql -c "CREATE USER vicanso WITH PASSWORD '123456';" -U postgres
+  - psql -c "GRANT ALL PRIVILEGES ON DATABASE tiny-site to vicanso;" -U postgres
 
 script:
   - env GO111MODULE=on make test
 
 after_success:
   - docker build -t tiny-site .
-  - docker tag tiny-site $DOCKER_USERNAME/tiny-site:latest
+  - docker tag tiny-site $DOCKER_USERNAME/tiny-site:elton
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - docker push $DOCKER_USERNAME/tiny-site:latest
+  - docker push $DOCKER_USERNAME/tiny-site:elton
   - docker images
