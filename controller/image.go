@@ -33,7 +33,7 @@ type (
 )
 
 var (
-	supportImageTypes = []string{
+	supportConvertImageTypes = []string{
 		"png",
 		"jpeg",
 		"jpg",
@@ -46,18 +46,34 @@ var (
 	errImageZoneIsInvalid      = hes.New("image zone is invalid")
 )
 
+const (
+	fileNameKey = "file"
+)
+
+type (
+	optimImageInfo struct {
+		SourceType string `json:"sourceType,omitempty"`
+		Type       string `json:"type,omitempty"`
+		Quality    int    `json:"quality,omitempty"`
+		Width      int    `json:"width,omitempty"`
+		Height     int    `json:"height,omitempty"`
+		Data       []byte `json:"data,omitempty"`
+		MaxAge     string `json:"maxAge,omitempty"`
+		Size       int    `json:"size,omitempty"`
+	}
+)
+
 func init() {
 	ctrl := imageCtrl{}
 	g := router.NewGroup("/images")
 
-	g.GET("/v1/preview/:file", ctrl.preview)
+	g.GET("/v1/preview/:"+fileNameKey, ctrl.preview)
+	g.GET("/v1/optim/:"+fileNameKey, ctrl.optim)
 
 	g.GET("/v1/config", ctrl.config)
-
 }
 
-func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
-	file := c.Param("file")
+func optim(file string) (info *optimImageInfo, err error) {
 	ext := filepath.Ext(file)
 	if ext == "" {
 		err = errImageTypeIsInvalid
@@ -65,7 +81,7 @@ func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
 	}
 	imageType := ext[1:]
 	// 判断是否支持转换的图片类型
-	if !util.ContainsString(supportImageTypes, imageType) {
+	if !util.ContainsString(supportConvertImageTypes, imageType) {
 		err = errImageTypeIsNotSupported
 		return
 	}
@@ -111,11 +127,45 @@ func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
 	if err != nil {
 		return
 	}
-	if f.MaxAge != "" {
-		c.CacheMaxAge(f.MaxAge)
+	info = &optimImageInfo{
+		Data:       data,
+		SourceType: f.Type,
+		Type:       imageType,
+		Quality:    quality,
+		Width:      width,
+		Height:     height,
+		MaxAge:     f.MaxAge,
+		Size:       len(data),
+	}
+	return
+}
+
+func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
+	file := c.Param(fileNameKey)
+	info, err := optim(file)
+	if err != nil {
+		return
+	}
+
+	ext := filepath.Ext(file)
+	if err != nil {
+		return
+	}
+	if info.MaxAge != "" {
+		c.CacheMaxAge(info.MaxAge)
 	}
 	c.SetContentTypeByExt(ext)
-	c.BodyBuffer = bytes.NewBuffer(data)
+	c.BodyBuffer = bytes.NewBuffer(info.Data)
+	return
+}
+
+func (ctrl imageCtrl) optim(c *elton.Context) (err error) {
+	file := c.Param(fileNameKey)
+	info, err := optim(file)
+	if err != nil {
+		return
+	}
+	c.Body = info
 	return
 }
 

@@ -31,6 +31,8 @@ const (
 
 	// ActionFileAdd add file
 	ActionFileAdd = "add-file"
+	// ActionFileInnerAdd inner add file
+	ActionFileInnerAdd = "inner-add-file"
 	// ActionFileUpdate update file
 	ActionFileUpdate = "update-file"
 

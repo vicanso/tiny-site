@@ -19,6 +19,7 @@ import (
 
 	"github.com/vicanso/elton"
 	"github.com/vicanso/hes"
+	"github.com/vicanso/tiny-site/config"
 	"github.com/vicanso/tiny-site/log"
 	"github.com/vicanso/tiny-site/middleware"
 	"github.com/vicanso/tiny-site/service"
@@ -158,4 +159,16 @@ func isAdmin(c *elton.Context) (err error) {
 	}
 	err = errForbidden
 	return
+}
+
+// token校验
+func tokenValidator(name string) elton.Handler {
+	return func(c *elton.Context) (err error) {
+		token := c.GetRequestHeader("X-Token")
+		if token == "" || token != config.GetString(name) {
+			err = errForbidden
+			return
+		}
+		return c.Next()
+	}
 }

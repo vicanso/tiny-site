@@ -37,12 +37,10 @@ import (
 type (
 	fileCtrl struct{}
 	fileInfo struct {
-		Name   string `json:"name,omitempty"`
-		Data   []byte `json:"data,omitempty"`
-		Type   string `json:"type,omitempty"`
-		Size   int    `json:"size,omitempty"`
-		Width  int    `json:"width,omitempty"`
-		Height int    `json:"height,omitempty"`
+		Name string `json:"name,omitempty"`
+		Data []byte `json:"data,omitempty"`
+		Type string `json:"type,omitempty"`
+		Size int    `json:"size,omitempty"`
 	}
 	createFileParams struct {
 		Name        string `json:"name,omitempty" valid:"xFileName"`
@@ -50,16 +48,12 @@ type (
 		MaxAge      string `json:"maxAge,omitempty" valid:"xDuration"`
 		Zone        int    `json:"zone,omitempty" valid:"xFileZone"`
 		Type        string `json:"type,omitempty" valid:"xFileType"`
-		Width       int    `json:"width,omitempty" valid:"-"`
-		Height      int    `json:"height,omitempty" valid:"-"`
 		Data        string `json:"data,omitempty" valid:"-"`
 	}
 	updateFileParams struct {
 		Description string `json:"description,omitempty" valid:"xFileDesc,optional"`
 		MaxAge      string `json:"maxAge,omitempty" valid:"xDuration,optional"`
 		Type        string `json:"type,omitempty" valid:"xFileType,optional"`
-		Width       int    `json:"width,omitempty" valid:"-"`
-		Height      int    `json:"height,omitempty" valid:"-"`
 		Data        string `json:"data,omitempty" valid:"-"`
 	}
 	listFileParams struct {
@@ -107,6 +101,8 @@ var (
 	}
 	errFileDataIsNil     = hes.New("data can't be nil")
 	errFileZoneIDInvalid = hes.New("file zone id is invalid")
+	errFileSizeTooLarge  = hes.New("file is too large")
+	errCreatorIsNil      = hes.New("creator can't be nil")
 )
 
 const (
@@ -118,6 +114,15 @@ const (
 const (
 	thumbnailWidth   = 60
 	thumbnailQuality = 70
+	maxFileSize      = 1024 * 1024
+)
+
+var (
+	supportUploadImageTypes = []string{
+		"png",
+		"jpeg",
+		"jpg",
+	}
 )
 
 func init() {
@@ -135,6 +140,14 @@ func init() {
 		newTracker(cs.ActionFileAdd),
 		ctrl.create,
 	)
+	// 内部上传接口
+	g.POST(
+		"/v1/upload/inner-save",
+		tokenValidator("token.innerUpdateImage"),
+		newTracker(cs.ActionFileInnerAdd),
+		ctrl.innerCreate,
+	)
+
 	// 上传文件
 	g.POST("/v1/upload", shouldLogined, ctrl.upload)
 	// 更新文件
@@ -182,14 +195,49 @@ func shouldAdminOrFileZoneOwner(c *elton.Context) (err error) {
 	return c.Next()
 }
 
-func (ctrl fileCtrl) create(c *elton.Context) (err error) {
+func addExtraInfoForImage(f *service.File, buf []byte, t string) (err error) {
+	if !util.ContainsString(supportUploadImageTypes, t) {
+		return
+	}
+	thumbnail, err := createThumbnail(buf, t)
+	if err != nil {
+		return
+	}
+	f.Thumbnail = thumbnail
+	r := bytes.NewBuffer(buf)
+	var img image.Image
+	switch t {
+	case "png":
+		img, err = png.Decode(r)
+	default:
+		img, err = jpeg.Decode(r)
+	}
+	if err != nil {
+		return
+	}
+	if img != nil {
+		f.Width = img.Bounds().Dx()
+		f.Height = img.Bounds().Dy()
+	}
+	return
+}
+
+func createThumbnail(data []byte, t string) ([]byte, error) {
+	return optimSrv.Image(service.ImageOptimParams{
+		Data:       data,
+		Type:       t,
+		SourceType: t,
+		Quality:    thumbnailQuality,
+		Width:      thumbnailWidth,
+	})
+}
+
+func createImageFile(c *elton.Context, creator string) (f *service.File, err error) {
 	params := &createFileParams{}
 	err = validate.Do(params, c.RequestBody)
 	if err != nil {
 		return
 	}
-	us := service.NewUserSession(c)
-	account := us.GetAccount()
 
 	buf, err := base64.StdEncoding.DecodeString(params.Data)
 	if err != nil {
@@ -199,29 +247,59 @@ func (ctrl fileCtrl) create(c *elton.Context) (err error) {
 		err = errFileDataIsNil
 		return
 	}
-
-	thumbnail, err := ctrl.createThumbnail(buf, params.Type)
-	if err != nil {
-		return
-	}
-
-	f := &service.File{
+	f = &service.File{
 		Name:        params.Name,
 		MaxAge:      params.MaxAge,
 		Zone:        params.Zone,
 		Type:        params.Type,
 		Size:        len(buf),
-		Width:       params.Width,
-		Height:      params.Height,
 		Data:        buf,
-		Thumbnail:   thumbnail,
 		Description: params.Description,
-		Creator:     account,
+		Creator:     creator,
 	}
+
+	err = addExtraInfoForImage(f, buf, params.Type)
+	if err != nil {
+		return
+	}
+
 	err = fileSrv.Add(f)
 	if err != nil {
 		return
 	}
+	return
+}
+
+func (ctrl fileCtrl) create(c *elton.Context) (err error) {
+	params := &createFileParams{}
+	err = validate.Do(params, c.RequestBody)
+	if err != nil {
+		return
+	}
+	us := service.NewUserSession(c)
+	account := us.GetAccount()
+	f, err := createImageFile(c, account)
+	if err != nil {
+		return
+	}
+
+	// 响应数据时把data清除，节约带宽
+	f.Data = nil
+	c.Created(f)
+	return
+}
+
+func (ctrl fileCtrl) innerCreate(c *elton.Context) (err error) {
+	creator := standardJSON.Get(c.RequestBody, "creator").ToString()
+	if creator == "" {
+		err = errCreatorIsNil
+		return
+	}
+	f, err := createImageFile(c, creator)
+	if err != nil {
+		return
+	}
+
 	// 响应数据时把data清除，节约带宽
 	f.Data = nil
 	c.Created(f)
@@ -238,6 +316,11 @@ func (ctrl fileCtrl) upload(c *elton.Context) (err error) {
 		return
 	}
 
+	if len(buf) > maxFileSize {
+		err = errFileSizeTooLarge
+		return
+	}
+
 	t := filepath.Ext(header.Filename)
 	if t != "" {
 		t = t[1:]
@@ -249,33 +332,8 @@ func (ctrl fileCtrl) upload(c *elton.Context) (err error) {
 		Size: len(buf),
 	}
 
-	r := bytes.NewBuffer(buf)
-	var img image.Image
-	switch t {
-	case "png":
-		img, err = png.Decode(r)
-	case "jpeg":
-		img, err = jpeg.Decode(r)
-	}
-	if err != nil {
-		return
-	}
-	if img != nil {
-		info.Width = img.Bounds().Dx()
-		info.Height = img.Bounds().Dy()
-	}
 	c.Body = info
 	return
-}
-
-func (ctrl fileCtrl) createThumbnail(data []byte, t string) ([]byte, error) {
-	return optimSrv.Image(service.ImageOptimParams{
-		Data:       data,
-		Type:       t,
-		SourceType: t,
-		Quality:    thumbnailQuality,
-		Width:      thumbnailWidth,
-	})
 }
 
 func (ctrl fileCtrl) updateUpload(c *elton.Context) (err error) {
@@ -298,25 +356,26 @@ func (ctrl fileCtrl) updateUpload(c *elton.Context) (err error) {
 		err = errNotAllowToUpdateFile
 		return
 	}
+
 	buf, err := base64.StdEncoding.DecodeString(params.Data)
 	if err != nil {
 		return
 	}
-	thumbnail, err := ctrl.createThumbnail(buf, params.Type)
+
+	newFile := &service.File{
+		Description: params.Description,
+		MaxAge:      params.MaxAge,
+		Type:        params.Type,
+		Data:        buf,
+		Size:        len(buf),
+	}
+
+	err = addExtraInfoForImage(newFile, buf, params.Type)
 	if err != nil {
 		return
 	}
 
-	err = fileSrv.UpdateByID(uint(id), &service.File{
-		Description: params.Description,
-		MaxAge:      params.MaxAge,
-		Type:        params.Type,
-		Width:       params.Width,
-		Height:      params.Height,
-		Data:        buf,
-		Thumbnail:   thumbnail,
-		Size:        len(buf),
-	})
+	err = fileSrv.UpdateByID(uint(id), newFile)
 	if err != nil {
 		return
 	}

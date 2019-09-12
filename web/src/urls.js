@@ -34,3 +34,4 @@ export const FILES_UPLOAD_SAVE = `${FILES}/v1/upload/save`;
 
 export const IMAGES = `${prefix}/images`;
 export const IMAGES_CONFIG = `${IMAGES}/v1/config`;
+export const IMAGES_OPTIM = `${IMAGES}/v1/optim/:file`;

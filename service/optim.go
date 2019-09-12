@@ -42,7 +42,7 @@ func init() {
 
 // Image image optim
 func (srv *OptimSrv) Image(params ImageOptimParams) (data []byte, err error) {
-	clinet := pb.NewOptimClient(grpcConn)
+	client := pb.NewOptimClient(grpcConn)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	in := &pb.OptimRequest{
@@ -68,7 +68,7 @@ func (srv *OptimSrv) Image(params ImageOptimParams) (data []byte, err error) {
 		in.Source = pb.Type_JPEG
 	}
 
-	reply, err := clinet.DoOptim(ctx, in)
+	reply, err := client.DoOptim(ctx, in)
 	if err != nil {
 		return
 	}

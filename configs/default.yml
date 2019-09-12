@@ -59,6 +59,10 @@ tiny:
   host: 127.0.0.1
   port: 6002
 
+# token配置
+token:
+  innerUpdateImage: jLxzIivHSl
+
 # 预览地址
 imagePreview:
   url: "http://localhost:7001/images/v1/preview/:file"

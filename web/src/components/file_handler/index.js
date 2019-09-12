@@ -30,8 +30,6 @@ class FileHandler extends React.Component {
     loading: false,
     zone: 0,
     zoneName: "",
-    height: 0,
-    width: 0,
     size: 0,
     name: "",
     type: "",
@@ -68,8 +66,6 @@ class FileHandler extends React.Component {
       });
       const arr = data.maxAge.split(/(\d+)/);
       this.setState({
-        height: data.height,
-        width: data.width,
         size: data.size,
         name: data.name,
         type: data.type,
@@ -104,8 +100,6 @@ class FileHandler extends React.Component {
       maxAge,
       maxAgeUnit,
       type,
-      width,
-      height,
       data
     } = this.state;
     if (!name || !maxAge || !description) {
@@ -118,8 +112,6 @@ class FileHandler extends React.Component {
       description,
       maxAge: `${maxAge}${maxAgeUnit}`,
       type,
-      width,
-      height,
       data
     };
     this.setState({
@@ -164,8 +156,6 @@ class FileHandler extends React.Component {
           if (status === "done") {
             message.info(`${name}上传成功`);
             const data = {
-              height: response.height,
-              width: response.width,
               size: response.size,
               type: response.type,
               data: response.data
