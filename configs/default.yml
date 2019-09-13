@@ -50,10 +50,6 @@ alarm:
   receiver:
   - tree.xie@outlook.com
 
-# 资源目录
-resources:
-  font: /Users/xieshuzhou/github/tiny-site/font
-
 # tiny服务的配置
 tiny:
   host: 127.0.0.1

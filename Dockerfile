@@ -25,7 +25,6 @@ RUN addgroup -g 1000 go \
   && apk add --no-cache ca-certificates
 
 COPY --from=builder /tiny-site/tiny-site /usr/local/bin/tiny-site
-COPY --from=webbuilder /tiny-site/font /font
 
 USER go
 

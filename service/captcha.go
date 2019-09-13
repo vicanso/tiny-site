@@ -24,12 +24,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/llgcode/draw2d"
-	"github.com/llgcode/draw2d/draw2dimg"
-	"github.com/llgcode/draw2d/draw2dkit"
+	"github.com/fogleman/gg"
+	"github.com/golang/freetype/truetype"
 	"github.com/vicanso/hes"
-	"github.com/vicanso/tiny-site/config"
 	"github.com/vicanso/tiny-site/util"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
 var (
@@ -51,57 +50,47 @@ type (
 	}
 )
 
-func init() {
-	fontPath = config.GetString("resources.font")
-	draw2d.SetFontFolder(fontPath)
-}
-
 // createCaptcha create captcha image
-func createCaptcha(fontColor, bgColor color.Color, width, height int, text string) (img *image.RGBA, err error) {
-	img = image.NewRGBA(image.Rect(0, 0, width, height))
-	gc := draw2dimg.NewGraphicContext(img)
-	draw2dkit.RoundedRectangle(gc, 0, 0, float64(width), float64(height), 0, 0)
-	gc.SetFillColor(bgColor)
-	gc.Fill()
-
-	gc.FillStroke()
-
-	// Set the font luximbi.ttf
-	gc.SetFontData(draw2d.FontData{Name: "luxi", Family: draw2d.FontFamilyMono, Style: draw2d.FontStyleBold | draw2d.FontStyleItalic})
-
-	gc.SetFillColor(fontColor)
+func createCaptcha(fontColor, bgColor color.Color, width, height int, text string) (img image.Image, err error) {
+	font, err := truetype.Parse(goregular.TTF)
+	if err != nil {
+		return
+	}
+	// dc := gg.NewContextForImage(img)
+	dc := gg.NewContext(width, height)
+	dc.SetColor(bgColor)
+	dc.Clear()
 	fontCount := len(text)
 	offset := 10
 	eachFontWidth := (width - 2*offset) / fontCount
-	fontSize := float64(eachFontWidth) * 1.2
+	fontSize := float64(eachFontWidth) * 1.8
+	dc.SetColor(fontColor)
 	for index, ch := range text {
 		newFontSize := float64(rand.Int63n(40)+80) / 100 * fontSize
-		gc.SetFontSize(newFontSize)
+		face := truetype.NewFace(font, &truetype.Options{Size: newFontSize})
+		dc.SetFontFace(face)
 		angle := float64(rand.Int63n(20))/100 - 0.1
 		offsetX := float64(eachFontWidth + index*eachFontWidth + int(rand.Int63n(10)) - 10)
 		offsetY := float64(height) + float64(rand.Int63n(10)) - float64(15)
 		if offsetY > float64(height) || offsetX < float64(height)-newFontSize {
 			offsetY = float64(height)
 		}
-		gc.Rotate(angle)
-		gc.FillStringAt(string(ch), offsetX, offsetY)
-	}
+		dc.Rotate(angle)
+		dc.DrawString(string(ch), offsetX, offsetY)
 
-	gc.SetStrokeColor(fontColor)
-	gc.SetLineWidth(1)
+	}
+	dc.SetStrokeStyle(gg.NewSolidPattern(fontColor))
+	dc.SetLineWidth(1.5)
 	for index := 0; index < 8; index++ {
-		gc.BeginPath() // Initialize a new path
 		x1 := float64(rand.Int31n(int32(width / 2)))
 		y1 := float64(rand.Int31n(int32(height)))
 
 		x2 := float64(rand.Int31n(int32(width/2)) + int32(width/2))
 		y2 := float64(rand.Int31n(int32(height)))
-		gc.MoveTo(x1, y1)
-		gc.LineTo(x2, y2)
-		gc.Close()
-		gc.FillStroke()
+		dc.DrawLine(x1, y1, x2, y2)
+		dc.Stroke()
 	}
-
+	img = dc.Image()
 	return
 }
 
