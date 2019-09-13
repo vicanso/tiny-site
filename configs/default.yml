@@ -7,10 +7,10 @@ listen: ":7001"
 track: jt
 
 
-# redis 配置(pass从env中获取pass这个配置为密码，如果未配置则为空)
+# redis 配置(pass优先从env中获取pass这个配置为密码，如果没有相应配置，则直接使用此配置值)
 redis: redis://127.0.0.1:6379
 
-# postgres 配置 (pass从env中获取pass这个配置为密码，如果未配置则为空)
+# postgres 配置 (pass优先从env中获取pass这个配置为密码，如果没有相应配置，则直接使用此配置值)
 postgres:
   host: 127.0.0.1
   port: 5432

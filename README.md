@@ -7,6 +7,18 @@
 
 ## 使用步骤
 
+### 启动tiny压缩服务
+
+```bash
+docker run -d --restart=always \
+  -p 7001:7001 \
+  -p 7002:7002 \
+  --name=tiny \
+  vicanso/tiny
+```
+
+其中7001是提供HTTP服务，tiny-site主要使用7002的GRPC服务，因此7001可按需要设置是否可用。
+
 ### 初始化数据库
 
 数据库使用`postgres`，可以使用docker启动相关的镜像并设置初始化数据库，其中账号密码可根据需要设置。
@@ -18,7 +30,32 @@ docker run \
   -e POSTGRES_PASSWORD=123456 \
   --restart=always \
   --name=postgres \
+  -v /data:/var/lib/postgresql/data \
   -d postgres:alpine
 ```
 
+### 创建db以及初始化权限
 
+```bash
+docker exec -it postgres sh
+
+psql -U test
+
+CREATE DATABASE "tiny" OWNER test;
+
+GRANT ALL PRIVILEGES ON DATABASE "tiny" to test;
+```
+
+
+### 启动服务
+
+```bash
+docker run -d --restart=always \
+  -p 7500:7001 \
+  -e GO_ENV=production \
+  -e PASS=pass \
+  --name=tiny-site \
+  vicanso/tiny-site:elton
+```
+
+需要注意，因为production.yml中的配置密码为PASS，如果在env中有此字段，则会取ENV中配置的值，因此可以根据需要直接将密码设置至配置文件或者ENV中。
