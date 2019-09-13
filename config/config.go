@@ -17,6 +17,7 @@ package config
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"strconv"
@@ -104,6 +105,14 @@ func init() {
 	err = viper.ReadConfig(bytes.NewReader(data))
 	if err != nil {
 		panic(err)
+	}
+	data, _ = ioutil.ReadFile(envConfigFile)
+	// 如果能读取到当前环境对应的文件，则从文件中读取
+	if len(data) != 0 {
+		err = viper.ReadConfig(bytes.NewReader(data))
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
