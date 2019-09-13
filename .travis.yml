@@ -19,7 +19,7 @@ script:
 
 after_success:
   - docker build -t tiny-site .
-  - docker tag tiny-site $DOCKER_USERNAME/tiny-site:elton
+  - docker tag tiny-site $DOCKER_USERNAME/tiny-site
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - docker push $DOCKER_USERNAME/tiny-site:elton
+  - docker push $DOCKER_USERNAME/tiny-site
   - docker images
