@@ -28,7 +28,7 @@ COPY --from=builder /tiny-site/tiny-site /usr/local/bin/tiny-site
 
 USER go
 
-WORKDIR /home/go
+WORKDIR /tiny-site
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 CMD [ "wget", "http://127.0.0.1:7001/ping", "-q", "-O", "-"]
 
