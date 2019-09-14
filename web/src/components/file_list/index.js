@@ -35,6 +35,7 @@ class FileList extends React.Component {
       "id,updatedAt,name,maxAge,zone,type,size,width,height,description,creator,thumbnail",
     files: null,
     clientX: 0,
+    optiming: false,
     imageConfig: null,
     previewImage: null,
     previewImageData: "",
@@ -141,6 +142,9 @@ class FileList extends React.Component {
   }
   async optimImage() {
     const file = this.getFileName();
+    this.setState({
+      optiming: true
+    });
     try {
       const data = await imageService.optim(file);
       this.setState({
@@ -149,6 +153,10 @@ class FileList extends React.Component {
       });
     } catch (err) {
       message.error(err.message);
+    } finally {
+      this.setState({
+        optiming: false
+      });
     }
   }
   getFileName() {
@@ -166,13 +174,23 @@ class FileList extends React.Component {
     return file;
   }
   updateOptimParams(key, value) {
+    const { previewImage, optimQuality } = this.state;
     if (Number.isInteger(value) && value < 0) {
       message.error("参数不能小于0");
       return;
     }
+
     const update = {
       optimImageInfo: null
     };
+    // 如果是转换为webp图片
+    if (key === "optimType" && value === "webp") {
+      // 原图片为jpeg，而且未选择转换质量，则设置为80来转换
+      if (previewImage.type === "jpeg" && optimQuality === 0) {
+        update.optimQuality = 80;
+      }
+    }
+
     update[key] = value;
     this.setState(update, () => {
       this.optimImage();
@@ -180,11 +198,14 @@ class FileList extends React.Component {
   }
   renderPreview() {
     const {
+      optiming,
       previewImage,
       previewImageData,
       optimImageInfo,
       optimWidth,
+      optimType,
       optimHeight,
+      optimQuality,
       imageConfig,
       clientX
     } = this.state;
@@ -290,13 +311,99 @@ class FileList extends React.Component {
       bottom: "0px",
       backgroundPosition: "right center",
       backgroundSize: "auto 100%",
-      left: `${leftValue}px`
+      // 还要送去左边框的1px
+      left: `${leftValue - 1}px`
     };
     if (optimImageInfo) {
       optimStyle.backgroundImage = `url("data:image/${optimImageInfo.type};base64,${optimImageInfo.data}")`;
     }
     const file = this.getFileName();
     const url = imageConfig.url.replace(":file", file);
+    const colList = [];
+    if (!optiming) {
+      colList.push(
+        <Col key="qualityCol" span={3}>
+          <Input
+            defaultValue={optimQuality}
+            addonBefore="图片质量："
+            type="number"
+            onChange={e => {
+              this.debounceUpdateOptimParams(
+                "optimQuality",
+                e.target.valueAsNumber || 0
+              );
+            }}
+          />
+        </Col>
+      );
+      colList.push(
+        <Col key="widthCol" span={3}>
+          <Input
+            defaultValue={optimWidth}
+            addonBefore="图片宽度："
+            type="number"
+            onChange={e => {
+              this.debounceUpdateOptimParams(
+                "optimWidth",
+                e.target.valueAsNumber || 0
+              );
+            }}
+          />
+        </Col>
+      );
+      colList.push(
+        <Col key="heightCol" span={3}>
+          <Input
+            defaultValue={optimHeight}
+            addonBefore="图片高度："
+            type="number"
+            onChange={e => {
+              this.debounceUpdateOptimParams(
+                "optimHeight",
+                e.target.valueAsNumber || 0
+              );
+            }}
+          />
+        </Col>
+      );
+      colList.push(
+        <Col key="typeCol" span={2}>
+          <Select
+            placeholder="图片类型"
+            style={{
+              width: "100%"
+            }}
+            defaultValue={optimType || previewImage.type}
+            onChange={value => {
+              this.updateOptimParams("optimType", value);
+            }}
+          >
+            <Option value="png">PNG</Option>
+            <Option value="jpeg">JPEG</Option>
+            <Option value="webp">WEBP</Option>
+          </Select>
+        </Col>
+      );
+      colList.push(
+        <Col key="urlCol" span={5}>
+          <Input
+            readOnly
+            addonBefore="图片地址："
+            addonAfter={
+              <Icon
+                title="点击复制图片地址"
+                onClick={e => {
+                  copy(url, e.target);
+                  message.info("已成功复制图片地址");
+                }}
+                type="copy"
+              />
+            }
+            defaultValue={url}
+          />
+        </Col>
+      );
+    }
 
     return (
       <Card title={title} extra={close} size="small" className="previewWrapper">
@@ -311,76 +418,7 @@ class FileList extends React.Component {
             <div className="imgOptim">预览图</div>
           </div>
           <Row className="functions" gutter={12}>
-            <Col span={3}>
-              <Input
-                addonBefore="图片质量："
-                type="number"
-                onChange={e => {
-                  this.debounceUpdateOptimParams(
-                    "optimQuality",
-                    e.target.valueAsNumber || 0
-                  );
-                }}
-              />
-            </Col>
-            <Col span={3}>
-              <Input
-                addonBefore="图片宽度："
-                type="number"
-                onChange={e => {
-                  this.debounceUpdateOptimParams(
-                    "optimWidth",
-                    e.target.valueAsNumber || 0
-                  );
-                }}
-              />
-            </Col>
-            <Col span={3}>
-              <Input
-                addonBefore="图片高度："
-                type="number"
-                onChange={e => {
-                  this.debounceUpdateOptimParams(
-                    "optimHeight",
-                    e.target.valueAsNumber || 0
-                  );
-                }}
-              />
-            </Col>
-            <Col span={2}>
-              <Select
-                placeholder="图片类型"
-                style={{
-                  width: "100%"
-                }}
-                defaultValue={previewImage.type}
-                onChange={value => {
-                  this.updateOptimParams("optimType", value);
-                }}
-              >
-                <Option value="png">PNG</Option>
-                <Option value="jpeg">JPEG</Option>
-                <Option value="webp">WEBP</Option>
-              </Select>
-            </Col>
-
-            <Col span={5}>
-              <Input
-                readOnly
-                addonBefore="图片地址："
-                addonAfter={
-                  <Icon
-                    title="点击复制图片地址"
-                    onClick={e => {
-                      copy(url, e.target);
-                      message.info("已成功复制图片地址");
-                    }}
-                    type="copy"
-                  />
-                }
-                defaultValue={url}
-              />
-            </Col>
+            {colList}
             <Col span={8} className="tips">
               <Icon
                 type="info-circle"

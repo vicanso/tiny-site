@@ -118,10 +118,12 @@ const (
 )
 
 var (
+	jpgImageType            = "jpg"
+	jpegImageType           = "jpeg"
 	supportUploadImageTypes = []string{
 		"png",
-		"jpeg",
-		"jpg",
+		jpgImageType,
+		jpegImageType,
 	}
 )
 
@@ -246,6 +248,9 @@ func createImageFile(c *elton.Context, creator string) (f *service.File, err err
 	if len(buf) == 0 {
 		err = errFileDataIsNil
 		return
+	}
+	if params.Type == jpgImageType {
+		params.Type = jpegImageType
 	}
 	f = &service.File{
 		Name:        params.Name,
