@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -98,8 +99,9 @@ func init() {
 	// 根据当前运行环境配置读取
 	envConfigFile := GetENV() + configExt
 
-	data, _ = ioutil.ReadFile(envConfigFile)
-	// 如果能读取到当前环境对应的文件，则从文件中读取
+	// 如果能到当前执行目录中获取对应的文件，则从文件中读取
+	file, _ := filepath.Abs(filepath.Join(os.Args[0], envConfigFile))
+	data, _ = ioutil.ReadFile(file)
 	if len(data) != 0 {
 		err = viper.ReadConfig(bytes.NewReader(data))
 		if err != nil {
