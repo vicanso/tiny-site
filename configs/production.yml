@@ -3,7 +3,16 @@
 # redis 配置
 redis: redis://:PASS@192.168.0.171:6379
 
+# tiny 配置tiny服务的IP
+tiny:
+  host: 192.168.0.171
+  port: 7002
+
 # postgres 配置
 postgres:
   host: 192.168.0.171
   password: PASS
+
+# 预览地址
+imagePreview:
+  url: "https://tiny.aslant.site/@images/:file"
