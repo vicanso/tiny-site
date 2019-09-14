@@ -99,6 +99,7 @@ func init() {
 	envConfigFile := GetENV() + configExt
 
 	// 如果能到当前执行目录中获取对应的文件，则从文件中读取
+	// 从dcoker file中配置的WORKDIR目录读取
 	data, _ = ioutil.ReadFile(envConfigFile)
 	if len(data) != 0 {
 		err = viper.ReadConfig(bytes.NewReader(data))

@@ -55,7 +55,29 @@ docker run -d --restart=always \
   -e GO_ENV=production \
   -e PASS=pass \
   --name=tiny-site \
-  vicanso/tiny-site:elton
+  vicanso/tiny-site
 ```
 
-需要注意，因为production.yml中的配置密码为PASS，如果在env中有此字段，则会取ENV中配置的值，因此可以根据需要直接将密码设置至配置文件或者ENV中。
+配置中密码为PASS，如果在env中有此字段，则会取ENV中配置的值，因此可以根据需要直接将密码设置至配置文件或者ENV中。需要注意，因为production.yml中的数据库配置在各自应用场景中不一致，建议`fork`项目再自己编译。或者增加自定义配置文件，`mount`至`/tiny-site/production.yml`，则启动脚本如下：
+
+```yaml
+# production 生产环境中使用的相关配置
+
+# redis 配置 （填写相应密码与host)
+redis: redis://:pass@redisHost:6379
+
+# postgres 配置（填写相应密码与host)
+postgres:
+  host: postgresHost
+  password: pass
+```
+
+```bash
+docker run -d --restart=always \
+  -p 7500:7001 \
+  -e GO_ENV=production \
+  -v /opt/tiny/production.yml:/tiny-site/production.yml \
+  --name=tiny-site \
+  vicanso/tiny-site
+```
+

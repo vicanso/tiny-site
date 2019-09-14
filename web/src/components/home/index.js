@@ -8,6 +8,7 @@ class Home extends React.Component {
     return (
       <div className="Home">
         <Card title="图片设置">
+          <p>测试账号/密码：tiny/123456</p>
           <p>
             默认生成的预览地址并没有针对性的设置，实际使用中可根据应用场景调整图片参数以适应各不同场景，可调整的参数如下：
           </p>
