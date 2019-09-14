@@ -97,6 +97,18 @@ func init() {
 
 	// 根据当前运行环境配置读取
 	envConfigFile := GetENV() + configExt
+
+	data, _ = ioutil.ReadFile(envConfigFile)
+	// 如果能读取到当前环境对应的文件，则从文件中读取
+	if len(data) != 0 {
+		err = viper.ReadConfig(bytes.NewReader(data))
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+
+	// 如果文件中没有对应配置，则从打包的配置中获取
 	data, err = box.Find(envConfigFile)
 	if err != nil {
 		panic(err)
@@ -105,14 +117,6 @@ func init() {
 	err = viper.ReadConfig(bytes.NewReader(data))
 	if err != nil {
 		panic(err)
-	}
-	data, _ = ioutil.ReadFile(envConfigFile)
-	// 如果能读取到当前环境对应的文件，则从文件中读取
-	if len(data) != 0 {
-		err = viper.ReadConfig(bytes.NewReader(data))
-		if err != nil {
-			panic(err)
-		}
 	}
 }
 
