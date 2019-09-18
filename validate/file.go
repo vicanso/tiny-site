@@ -15,6 +15,8 @@
 package validate
 
 import (
+	"strings"
+
 	"github.com/asaskevich/govalidator"
 )
 
@@ -37,7 +39,16 @@ func init() {
 	})
 
 	Add("xFileName", func(i interface{}, _ interface{}) bool {
-		return checkStringLength(i, 4, 26)
+		valid := checkStringLength(i, 4, 26)
+		if !valid {
+			return false
+		}
+		value, _ := i.(string)
+		// 文件名不允许存在 -
+		if strings.Contains(value, "-") {
+			return false
+		}
+		return true
 	})
 
 	Add("xFileType", func(i interface{}, _ interface{}) bool {

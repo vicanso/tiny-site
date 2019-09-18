@@ -13,7 +13,7 @@ require (
 	github.com/jinzhu/gorm v1.9.10
 	github.com/json-iterator/go v1.1.7
 	github.com/lib/pq v1.2.0
-	github.com/oklog/ulid v1.3.1
+	github.com/oklog/ulid/v2 v2.0.2
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.3.0
 	github.com/vicanso/count-warner v0.0.1
@@ -33,7 +33,7 @@ require (
 	github.com/vicanso/go-axios v0.0.5
 	github.com/vicanso/hes v0.2.1
 	github.com/vicanso/ips v0.0.1
-	github.com/vicanso/tiny v1.0.0
+	github.com/vicanso/tiny v1.0.1
 	go.uber.org/zap v1.10.0
 	golang.org/x/image v0.0.0-20190910094157-69e4b8554b2a
 	google.golang.org/grpc v1.23.1

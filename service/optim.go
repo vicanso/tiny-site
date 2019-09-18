@@ -27,6 +27,7 @@ type (
 		Quality    int
 		Width      int
 		Height     int
+		Crop       int
 	}
 	// OptimSrv optim service
 	OptimSrv struct{}
@@ -50,6 +51,7 @@ func (srv *OptimSrv) Image(params ImageOptimParams) (data []byte, err error) {
 		Quality: uint32(params.Quality),
 		Width:   uint32(params.Width),
 		Height:  uint32(params.Height),
+		Crop:    uint32(params.Crop),
 	}
 	switch params.Type {
 	case "png":

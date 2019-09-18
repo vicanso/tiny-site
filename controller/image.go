@@ -44,6 +44,7 @@ var (
 	errImageTypeIsInvalid      = hes.New("image type is invalid")
 	errImageTypeIsNotSupported = hes.New("image type isn't supported")
 	errImageZoneIsInvalid      = hes.New("image zone is invalid")
+	errImageParamsIsInvalid    = hes.New("image params is invalid")
 )
 
 const (
@@ -91,7 +92,14 @@ func optim(file string) (info *optimImageInfo, err error) {
 	quality := 0
 	width := 0
 	height := 0
+	crop := 0
 	name := arr[0]
+	max := 5
+	// 参数最多只有5个
+	if len(arr) > max {
+		err = errImageParamsIsInvalid
+		return
+	}
 	if len(arr) > 1 {
 		quality, err = strconv.Atoi(arr[1])
 		if err != nil {
@@ -110,6 +118,13 @@ func optim(file string) (info *optimImageInfo, err error) {
 			return
 		}
 	}
+	if len(arr) > 4 {
+		crop, err = strconv.Atoi(arr[4])
+		if err != nil {
+			return
+		}
+	}
+
 	// 获取图片数据
 	f, err := fileSrv.GetByName(name)
 	if err != nil {
@@ -123,6 +138,7 @@ func optim(file string) (info *optimImageInfo, err error) {
 		Quality:    quality,
 		Width:      width,
 		Height:     height,
+		Crop:       crop,
 	})
 	if err != nil {
 		return

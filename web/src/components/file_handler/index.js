@@ -106,6 +106,10 @@ class FileHandler extends React.Component {
       message.error("名称、缓存有效期以及描述均不能为空");
       return;
     }
+    if (/-/.test(name)) {
+      message.error("名称存在非法字符:-");
+      return;
+    }
     const params = {
       zone,
       name,

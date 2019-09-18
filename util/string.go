@@ -17,10 +17,11 @@ package util
 import (
 	"crypto/sha256"
 	"encoding/base64"
+
 	"math/rand"
 	"time"
 
-	"github.com/oklog/ulid"
+	"github.com/oklog/ulid/v2"
 )
 
 // https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go
@@ -62,10 +63,11 @@ func RandomDigit(n int) string {
 	return randomString(digitBytes, n)
 }
 
-// GenUlid generater ulid
+var entropy = ulid.Monotonic(rand.New(rand.NewSource(time.Unix(1000000, 0).UnixNano())), 0)
+
+// GenUlid generate ulid
 func GenUlid() string {
 	t := time.Now()
-	entropy := rand.New(rand.NewSource(t.UnixNano()))
 	return ulid.MustNew(ulid.Timestamp(t), entropy).String()
 }
 

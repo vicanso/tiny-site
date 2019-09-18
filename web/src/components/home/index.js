@@ -10,13 +10,19 @@ class Home extends React.Component {
         <Card title="图片设置">
           <h3>测试账号/密码：tiny/123456</h3>
           <p>
-            默认生成的预览地址并没有针对性的设置，实际使用中可根据应用场景调整图片参数以适应各不同场景，可调整的参数如下：
+            默认生成的预览地址并没有针对性的设置，实际使用中可根据应用场景调整图片参数以适应各不同场景，参数按顺序添加至文件名中，可仅指定前置的参数，如需要指定图片宽度，则必须指定图片质量、高度，后续的参数则可忽略，参数如下：
           </p>
           <ul>
-            <li>图片质量</li>
-            <li>图片高度</li>
-            <li>图片宽度</li>
-            <li>图片类型</li>
+            <li>图片质量：为0表示使用默认质量，JPEG(80)，PNG(90)</li>
+            <li>图片高度：为0表示原图片高度</li>
+            <li>图片宽度：为0表示原图片宽度</li>
+            <li>图片类型：支持JPEG, PNG以及WEBP</li>
+            <li>
+              裁剪类型：按照指定的宽高对图片做裁剪，支持九种裁剪方式，1(left
+              top) 2(top center) 3(right top) 4(left center) 5(center center)
+              6(right center) 7(left bottom) 8(bottom center) 9(right
+              bottom)，此参数在预览功能中并未提供选择，建议在终端中需动态裁剪显示区域时使用
+            </li>
           </ul>
           <p>
             上述参数通过文件名来指定，格式如下：
@@ -36,8 +42,12 @@ class Home extends React.Component {
               压缩图片质量为30：<span>01DM5TZXH920856WDJ1JHTZTJV-30.jpeg</span>
             </li>
             <li>
-              指定图片质量，并调整图片宽高以及质量：
+              指定图片质量，并调整图片宽高以及图片类型：
               <span>01DM5TZXH920856WDJ1JHTZTJV-70-100-300.webp</span>
+            </li>
+            <li>
+              指定图片质量，并做居中剪切以及图片类型：
+              <span>01DM5TZXH920856WDJ1JHTZTJV-70-100-300-5.webp</span>
             </li>
           </ul>
         </Card>
