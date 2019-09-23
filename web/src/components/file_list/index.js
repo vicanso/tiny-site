@@ -154,6 +154,8 @@ class FileList extends React.Component {
     }
     this.setState(
       {
+        optimImageInfo: null,
+        previewImageData: null,
         previewImage: item
       },
       () => {
