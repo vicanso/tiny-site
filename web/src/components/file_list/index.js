@@ -193,7 +193,7 @@ class FileList extends React.Component {
     } = this.state;
     const file = `${
       previewImage.name
-    }-${optimQuality}-${optimWidth}-${optimHeight}.${optimType ||
+      }-${optimQuality}-${optimWidth}-${optimHeight}.${optimType ||
       previewImage.type}`;
     return file;
   }
@@ -594,11 +594,13 @@ class FileList extends React.Component {
                   <Button
                     htmlType="submit"
                     style={{
-                      width: "100%"
+                      width: "100%",
+                      letterSpacing: "5px"
                     }}
                     type="primary"
+                    icon="search"
                   >
-                    确定
+                    搜索
                   </Button>
                 </Form.Item>
               </Col>
