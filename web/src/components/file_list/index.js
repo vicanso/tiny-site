@@ -444,7 +444,7 @@ class FileList extends React.Component {
         width: "300px"
       },
       {
-        title: "缓存有效欺",
+        title: "缓存有效期",
         dataIndex: "maxAge",
         key: "maxAge",
         width: "120px"
