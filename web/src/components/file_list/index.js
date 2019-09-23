@@ -6,6 +6,8 @@ import {
   Table,
   Icon,
   Card,
+  Form,
+  Button,
   Input,
   Row,
   Col,
@@ -33,6 +35,7 @@ class FileList extends React.Component {
     sort: "-updatedAt",
     fields:
       "id,updatedAt,name,maxAge,zone,type,size,width,height,description,creator,thumbnail",
+    keyword: "",
     files: null,
     clientX: 0,
     optiming: false,
@@ -45,6 +48,8 @@ class FileList extends React.Component {
     optimQuality: 0,
     optimType: "",
     pagination: {
+      pageSizeOptions: ["10", "20"],
+      showSizeChanger: true,
       current: 1,
       pageSize: 10,
       total: 0
@@ -74,7 +79,7 @@ class FileList extends React.Component {
     }
   }
   async fetchFiles() {
-    const { loading, zone, fields, pagination, sort } = this.state;
+    const { loading, zone, fields, pagination, sort, keyword } = this.state;
     if (loading) {
       return;
     }
@@ -86,6 +91,7 @@ class FileList extends React.Component {
       const limit = pagination.pageSize;
       const offset = (pagination.current - 1) * limit;
       const data = await fileService.list({
+        keyword,
         offset,
         limit,
         zone,
@@ -111,6 +117,22 @@ class FileList extends React.Component {
         loading: false
       });
     }
+  }
+  async handleSearch(e) {
+    e.preventDefault();
+    const { pagination } = this.state;
+    const updateData = {};
+    updateData.pagination = Object.assign(
+      { ...pagination },
+      {
+        current: 1,
+        total: 0
+      }
+    );
+
+    this.setState(updateData, () => {
+      this.fetchFiles();
+    });
   }
   async fetchOriginalImageData(fileID) {
     try {
@@ -547,23 +569,59 @@ class FileList extends React.Component {
     ];
     // TODO 增加搜索功能
     return (
-      <Table
-        className="files"
-        rowKey={"id"}
-        columns={columns}
-        pagination={pagination}
-        dataSource={files}
-        onChange={pagination => {
-          this.setState(
-            {
-              pagination: { ...pagination }
-            },
-            () => {
-              this.fetchFiles();
-            }
-          );
-        }}
-      />
+      <div>
+        <Card title="文件筛选" size="small" className="filter">
+          <Form onSubmit={this.handleSearch.bind(this)}>
+            <Row gutter={12}>
+              <Col span={20}>
+                <Form.Item>
+                  <Input
+                    allowClear
+                    type="text"
+                    placeholder="请输入搜索关键字，支持名称与描述的模糊搜索"
+                    onChange={e => {
+                      this.setState({
+                        keyword: e.target.value.trim()
+                      });
+                    }}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={4}>
+                <Form.Item>
+                  <Button
+                    htmlType="submit"
+                    style={{
+                      width: "100%"
+                    }}
+                    type="primary"
+                  >
+                    确定
+                  </Button>
+                </Form.Item>
+              </Col>
+            </Row>
+          </Form>
+        </Card>
+
+        <Table
+          className="files"
+          rowKey={"id"}
+          columns={columns}
+          pagination={pagination}
+          dataSource={files}
+          onChange={pagination => {
+            this.setState(
+              {
+                pagination: { ...pagination }
+              },
+              () => {
+                this.fetchFiles();
+              }
+            );
+          }}
+        />
+      </div>
     );
   }
   handleMouseMove(e) {

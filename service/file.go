@@ -51,11 +51,12 @@ type (
 	}
 	// FileQueryParams file query params
 	FileQueryParams struct {
-		Limit  int
-		Offset int
-		Zone   int
-		Fields string
-		Sort   string
+		Keyword string
+		Limit   int
+		Offset  int
+		Zone    int
+		Fields  string
+		Sort    string
 	}
 	// FileSrv file service
 	FileSrv struct{}
@@ -83,6 +84,10 @@ func (srv *FileSrv) List(params FileQueryParams) (result []*File, err error) {
 		db = db.Order(pgFormatOrder(params.Sort))
 	}
 	db = db.Where("zone = (?)", params.Zone)
+	if params.Keyword != "" {
+		db = db.Where("name LIKE ?", "%"+params.Keyword+"%").
+			Or("description LIKE ?", "%"+params.Keyword+"%")
+	}
 	err = db.Find(&result).Error
 	return
 }

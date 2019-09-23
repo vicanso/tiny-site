@@ -51,6 +51,10 @@ func init() {
 		return true
 	})
 
+	Add("xFileKeyword", func(i interface{}, _ interface{}) bool {
+		return checkStringLength(i, 1, 100)
+	})
+
 	Add("xFileType", func(i interface{}, _ interface{}) bool {
 		return checkASCIIStringLength(i, 1, 5)
 	})

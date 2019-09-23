@@ -57,11 +57,12 @@ type (
 		Data        string `json:"data,omitempty" valid:"-"`
 	}
 	listFileParams struct {
-		Zone   string `json:"zone,omitempty" valid:"xFileZone"`
-		Limit  string `json:"limit,omitempty" valid:"xLimit"`
-		Offset string `json:"offset,omitempty" valid:"xOffset"`
-		Fields string `json:"fields,omitempty" valid:"xFields"`
-		Sort   string `json:"sort,omitempty" valid:"xSort,optional"`
+		Zone    string `json:"zone,omitempty" valid:"xFileZone"`
+		Limit   string `json:"limit,omitempty" valid:"xLimit"`
+		Offset  string `json:"offset,omitempty" valid:"xOffset"`
+		Fields  string `json:"fields,omitempty" valid:"xFields"`
+		Sort    string `json:"sort,omitempty" valid:"xSort,optional"`
+		Keyword string `json:"keyword,omitempty" valid:"xFileKeyword,optional"`
 	}
 	createFileZoneParams struct {
 		Name        string `json:"name,omitempty" valid:"xFileZoneName"`
@@ -399,11 +400,12 @@ func (ctrl fileCtrl) list(c *elton.Context) (err error) {
 	offset, _ := strconv.Atoi(params.Offset)
 
 	queryParams := service.FileQueryParams{
-		Limit:  limit,
-		Zone:   zone,
-		Offset: offset,
-		Fields: params.Fields,
-		Sort:   params.Sort,
+		Limit:   limit,
+		Zone:    zone,
+		Offset:  offset,
+		Fields:  params.Fields,
+		Sort:    params.Sort,
+		Keyword: params.Keyword,
 	}
 	result, err := fileSrv.List(queryParams)
 	if err != nil {
