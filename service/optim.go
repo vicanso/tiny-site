@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/vicanso/tiny-site/config"
@@ -34,11 +35,21 @@ type (
 )
 
 func init() {
-	conn, err := grpc.Dial(config.GetTinyAddress(), grpc.WithInsecure())
-	if err != nil {
-		panic(err)
+	done := make(chan int)
+	go func() {
+		conn, err := grpc.Dial(config.GetTinyAddress(), grpc.WithInsecure(), grpc.WithBlock())
+		if err != nil {
+			panic(err)
+		}
+		done <- 1
+		grpcConn = conn
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		panic(errors.New("grpc dial timeout"))
 	}
-	grpcConn = conn
+
 }
 
 // Image image optim
