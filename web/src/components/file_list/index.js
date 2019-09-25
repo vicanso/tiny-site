@@ -193,7 +193,7 @@ class FileList extends React.Component {
     } = this.state;
     const file = `${
       previewImage.name
-      }-${optimQuality}-${optimWidth}-${optimHeight}.${optimType ||
+    }-${optimQuality}-${optimWidth}-${optimHeight}.${optimType ||
       previewImage.type}`;
     return file;
   }
@@ -340,6 +340,8 @@ class FileList extends React.Component {
     };
     if (optimImageInfo) {
       optimStyle.backgroundImage = `url("data:image/${optimImageInfo.type};base64,${optimImageInfo.data}")`;
+    } else {
+      optimStyle.backgroundColor = "rgba(255, 255, 255, 0.4)";
     }
     const file = this.getFileName();
     const url = imageConfig.url.replace(":file", file);
