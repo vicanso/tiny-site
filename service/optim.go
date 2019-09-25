@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/vicanso/tiny-site/config"
+	"github.com/vicanso/tiny-site/util"
 	"google.golang.org/grpc"
 
 	pb "github.com/vicanso/tiny/pb"
@@ -37,7 +38,13 @@ type (
 func init() {
 	done := make(chan int)
 	go func() {
-		conn, err := grpc.Dial(config.GetTinyAddress(), grpc.WithInsecure(), grpc.WithBlock())
+		opts := make([]grpc.DialOption, 0)
+		opts = append(opts, grpc.WithInsecure())
+		if util.IsProduction() {
+			opts = append(opts, grpc.WithBlock())
+		}
+
+		conn, err := grpc.Dial(config.GetTinyAddress(), opts...)
 		if err != nil {
 			panic(err)
 		}
