@@ -17,7 +17,7 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.3.0
 	github.com/vicanso/count-warner v0.0.1
-	github.com/vicanso/elton v0.2.0
+	github.com/vicanso/elton v0.2.1
 	github.com/vicanso/elton-body-parser v0.1.5
 	github.com/vicanso/elton-concurrent-limiter v0.1.0
 	github.com/vicanso/elton-error-handler v0.1.2

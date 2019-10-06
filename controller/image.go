@@ -16,9 +16,11 @@ package controller
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/vicanso/elton"
 	"github.com/vicanso/hes"
@@ -49,6 +51,8 @@ var (
 
 const (
 	fileNameKey = "file"
+	// 默认的s-maxage为缓存10分钟
+	defaultSMaxAge = "10m"
 )
 
 type (
@@ -158,17 +162,36 @@ func optim(file string) (info *optimImageInfo, err error) {
 
 func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
 	file := c.Param(fileNameKey)
+	ext := filepath.Ext(file)
+	autoDetected := false
+	// 如果未设置后缀，则从Accept中判断（不建议使用此方式，尽量由客户端指定后缀）
+	// 如果支持webp则webp，否则为jpg
+	if ext == "" {
+		if strings.Contains(c.GetRequestHeader("Accept"), "image/webp") {
+			ext = ".webp"
+		} else {
+			ext = ".jpeg"
+		}
+		file += ext
+		autoDetected = true
+	}
 	info, err := optim(file)
 	if err != nil {
 		return
 	}
 
-	ext := filepath.Ext(file)
 	if err != nil {
 		return
 	}
 	if info.MaxAge != "" {
-		c.CacheMaxAge(info.MaxAge)
+		// 如果自动生成后缀的，仅可客户端缓存
+		if autoDetected {
+			d, _ := time.ParseDuration(info.MaxAge)
+			c.SetHeader(elton.HeaderCacheControl, fmt.Sprintf("private, max-age=%d", int(d.Seconds())))
+		} else {
+			// 设置缓存服务的缓存时长
+			c.CacheMaxAge(info.MaxAge, defaultSMaxAge)
+		}
 	}
 	c.SetContentTypeByExt(ext)
 	c.BodyBuffer = bytes.NewBuffer(info.Data)
