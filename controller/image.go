@@ -134,6 +134,13 @@ func optim(file string) (info *optimImageInfo, err error) {
 	if err != nil {
 		return
 	}
+	if width != 0 && width > f.Width {
+		width = f.Width
+	}
+	if height != 0 && height > f.Height {
+		height = f.Height
+	}
+
 	// 图片转换压缩
 	data, err := optimSrv.Image(service.ImageOptimParams{
 		Data:       f.Data,
