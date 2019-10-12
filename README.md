@@ -11,6 +11,17 @@
 
 使用`tiny-site`图片管理系统，可以简单的将原图片上传之后，依赖于[tiny](https://github.com/vicanso/tiny)，根据应用场景选择适合的图片参数，可生成`webp`, `png`与`jpeg`。通过文件名格式定义，以简便的形式支持自定义图片质量与尺寸，搭配CDN可根据应用需要生成各类不同的图片。
 
+## 功能介绍
+
+网站的主要功能比较简单，上传图片、图片列表、预览选择图片参数以及图片更新。
+
+![](./assets/file-zone.jpg)
+
+![](./assets/file-add.jpg)
+
+![](./assets/file-list.jpg)
+
+![](./assets/file-preview.jpg)
 
 ## 使用步骤
 
@@ -135,14 +146,3 @@ export function supportWebp() {
 
 在浏览器中，使用上面的判断，对于支持`webp`格式的，则将图片后续替换为`.webp`，而不支持的则使用原后缀。`iOS`并没有支持`webp`格式，如果是在APP中，则可以自己扩展实现，`android`则系统原生支持，不需要做调整。
 
-## 功能介绍
-
-网站的主要功能比较简单，上传图片、图片列表、预览选择图片参数以及图片更新。
-
-![](./assets/file-zone.jpg)
-
-![](./assets/file-add.jpg)
-
-![](./assets/file-list.jpg)
-
-![](./assets/file-preview.jpg)
