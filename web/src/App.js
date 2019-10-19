@@ -18,7 +18,8 @@ import {
   MY_FILE_ZONE_PATH,
   FILE_ZONE_PATH,
   FILE_LIST_PATH,
-  FILE_HANDLER_PATH
+  FILE_HANDLER_PATH,
+  PREVIEW_PATH
 } from "./paths";
 import { USERS_ME } from "./urls";
 import AppMenu from "./components/app_menu";
@@ -37,6 +38,7 @@ import MyFileZone from "./components/my_file_zone";
 import FileZone from "./components/file_zone";
 import FileList from "./components/file_list";
 import FileHandler from "./components/file_handler";
+import Preview from "./components/preview";
 
 function NeedLoginRoute({ component: Component, account, roles, ...rest }) {
   return (
@@ -179,6 +181,7 @@ class App extends React.Component {
                 roles={roles}
                 exact
               />
+              <Route path={PREVIEW_PATH} component={Preview} />
               <Route path={HOME_PATH} component={Home} exact />
             </div>
           )}

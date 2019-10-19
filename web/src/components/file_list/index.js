@@ -10,22 +10,17 @@ import {
   Button,
   Input,
   Row,
-  Col,
-  Select
+  Col
 } from "antd";
 import moment from "moment";
 import { Link } from "react-router-dom";
-import debounce from "debounce";
 import bytes from "bytes";
 
 import "./file_list.sass";
 import * as fileService from "../../services/file";
-import * as imageService from "../../services/image";
-import { getQueryParams, copy } from "../../helpers/util";
+import { getQueryParams } from "../../helpers/util";
 import { TIME_FORMAT } from "../../vars";
-import { FILE_HANDLER_PATH } from "../../paths";
-
-const { Option } = Select;
+import { FILE_HANDLER_PATH, PREVIEW_PATH } from "../../paths";
 
 class FileList extends React.Component {
   state = {
@@ -37,16 +32,6 @@ class FileList extends React.Component {
       "id,updatedAt,name,maxAge,zone,type,size,width,height,description,creator,thumbnail",
     keyword: "",
     files: null,
-    clientX: 0,
-    optiming: false,
-    imageConfig: null,
-    previewImage: null,
-    previewImageData: "",
-    optimImageInfo: null,
-    optimWidth: 0,
-    optimHeight: 0,
-    optimQuality: 0,
-    optimType: "",
     pagination: {
       pageSizeOptions: ["10", "20"],
       showSizeChanger: true,
@@ -55,29 +40,15 @@ class FileList extends React.Component {
       total: 0
     }
   };
-  previewImageRef = React.createRef();
   constructor(props) {
     super(props);
     this.state.zone = Number.parseInt(props.match.params.fileZoneID);
     this.state.zoneName = getQueryParams(props.location.search, "name");
-    this.debounceUpdateOptimParams = debounce((...args) => {
-      this.updateOptimParams(...args);
-    }, 1000);
   }
   componentDidMount() {
     this.fetchFiles();
-    this.fetchConfig();
   }
-  async fetchConfig() {
-    try {
-      const data = await imageService.getConfig();
-      this.setState({
-        imageConfig: data
-      });
-    } catch (err) {
-      message.error(err.message);
-    }
-  }
+
   async fetchFiles() {
     const { loading, zone, fields, pagination, sort, keyword } = this.state;
     if (loading) {
@@ -133,331 +104,6 @@ class FileList extends React.Component {
     this.setState(updateData, () => {
       this.fetchFiles();
     });
-  }
-  async fetchOriginalImageData(fileID) {
-    try {
-      const data = await fileService.getByID(fileID, {
-        fields: "*"
-      });
-      this.setState({
-        previewImageData: data.data
-      });
-    } catch (err) {
-      message.error(err.message);
-    }
-  }
-  preview(item) {
-    const { imageConfig } = this.state;
-    if (!imageConfig) {
-      message.error("获取图片相关配置失败，请刷新重试");
-      return;
-    }
-    this.setState(
-      {
-        optimImageInfo: null,
-        previewImageData: null,
-        previewImage: item
-      },
-      () => {
-        this.optimImage();
-      }
-    );
-    this.fetchOriginalImageData(item.id);
-  }
-  async optimImage() {
-    const file = this.getFileName();
-    this.setState({
-      optiming: true
-    });
-    try {
-      const data = await imageService.optim(file);
-      this.setState({
-        clientX: 0,
-        optimImageInfo: data
-      });
-    } catch (err) {
-      message.error(err.message);
-    } finally {
-      this.setState({
-        optiming: false
-      });
-    }
-  }
-  getFileName() {
-    const {
-      optimQuality,
-      optimWidth,
-      optimHeight,
-      previewImage,
-      optimType
-    } = this.state;
-    const file = `${
-      previewImage.name
-    }-${optimQuality}-${optimWidth}-${optimHeight}.${optimType ||
-      previewImage.type}`;
-    return file;
-  }
-  updateOptimParams(key, value) {
-    const { previewImage, optimQuality } = this.state;
-    if (Number.isInteger(value) && value < 0) {
-      message.error("参数不能小于0");
-      return;
-    }
-
-    const update = {
-      optimImageInfo: null
-    };
-    // 如果是转换为webp图片
-    if (key === "optimType" && value === "webp") {
-      // 原图片为jpeg，而且未选择转换质量，则设置为80来转换
-      if (previewImage.type === "jpeg" && optimQuality === 0) {
-        update.optimQuality = 80;
-      }
-    }
-
-    update[key] = value;
-    this.setState(update, () => {
-      this.optimImage();
-    });
-  }
-  renderPreview() {
-    const {
-      optiming,
-      previewImage,
-      previewImageData,
-      optimImageInfo,
-      optimWidth,
-      optimType,
-      optimHeight,
-      optimQuality,
-      imageConfig,
-      clientX
-    } = this.state;
-    if (!previewImage) {
-      return;
-    }
-    // 高度-(60 + 50) 60为顶部高度，50为底部工具栏高度
-    // 宽度-25
-    const { innerHeight, innerWidth } = window;
-    const maxWidth = innerWidth - 25;
-    const maxHeight = innerHeight - 110;
-    let originalWidth = previewImage.width;
-    let originalHeight = previewImage.height;
-    let currentWidth = 0;
-    let currentHeight = 0;
-    // 宽高都有设置
-    if (optimWidth && optimHeight) {
-      currentWidth = optimWidth;
-      currentHeight = optimHeight;
-    } else if (optimHeight) {
-      // 只设置高度，宽度自适应
-      currentHeight = optimHeight;
-      currentWidth = (originalWidth / originalHeight) * currentHeight;
-    } else if (optimWidth) {
-      // 只设置宽度，高度自适应
-      currentWidth = optimWidth;
-      currentHeight = (originalHeight / originalWidth) * currentWidth;
-    } else {
-      currentWidth = originalWidth;
-      currentHeight = originalHeight;
-    }
-    const wTimes = currentWidth / maxWidth;
-    const hTimes = currentHeight / maxHeight;
-    // 如果宽度或高度超过显示区域
-    if (wTimes > 1 || hTimes > 1) {
-      if (wTimes > hTimes) {
-        currentHeight *= maxWidth / currentWidth;
-        currentWidth = maxWidth;
-      } else {
-        currentWidth *= maxHeight / currentHeight;
-        currentHeight = maxHeight;
-      }
-    }
-
-    const close = (
-      <a
-        href="/close"
-        className="close"
-        onClick={e => {
-          e.preventDefault();
-          this.setState({
-            previewImage: null
-          });
-        }}
-      >
-        <Icon type="close-square" />
-      </a>
-    );
-    const tips = [];
-    if (!previewImageData) {
-      tips.push("正在加载原图片数据");
-    }
-    if (!optimImageInfo) {
-      tips.push("正在加载优化图片数据");
-    }
-    if (tips.length !== 0) {
-      tips.push("请稍候...");
-    }
-    if (previewImage && optimImageInfo) {
-      const originalSize = previewImage.size;
-      const optimSize = optimImageInfo.size;
-      tips.push(
-        `优化后，文件大小${bytes(originalSize)} => ${bytes(
-          optimSize
-        )}，减少${100 - Math.floor((100 * optimSize) / originalSize)}%数据量`
-      );
-    }
-    const title = `图片预览：${previewImage.name}`;
-    const marginLeft = (maxWidth - currentWidth) / 2;
-    const imgStyle = {
-      position: "relative",
-      marginLeft: `${marginLeft}px`,
-      width: `${currentWidth}px`,
-      height: `${currentHeight}px`,
-      backgroundSize: "100% 100%",
-      backgroundImage: `url("data:image/${previewImage.type};base64,${previewImageData}")`
-    };
-    const halfOffset = currentWidth / 2;
-    let leftValue = halfOffset;
-    if (clientX && this.previewImageRef.current) {
-      leftValue = clientX - this.previewImageRef.current.offsetLeft;
-    }
-    if (leftValue <= 0) {
-      leftValue = halfOffset;
-    } else if (leftValue >= currentWidth) {
-      leftValue = halfOffset;
-    }
-    const optimStyle = {
-      borderLeft: "1px solid #fff",
-      position: "absolute",
-      top: "0px",
-      right: "0px",
-      bottom: "0px",
-      backgroundPosition: "right center",
-      backgroundSize: "auto 100%",
-      // 还要送去左边框的1px
-      left: `${leftValue - 1}px`
-    };
-    if (optimImageInfo) {
-      optimStyle.backgroundImage = `url("data:image/${optimImageInfo.type};base64,${optimImageInfo.data}")`;
-    } else {
-      optimStyle.backgroundColor = "rgba(255, 255, 255, 0.4)";
-    }
-    const file = this.getFileName();
-    const url = imageConfig.url.replace(":file", file);
-    const colList = [];
-    if (!optiming) {
-      colList.push(
-        <Col key="qualityCol" span={3}>
-          <Input
-            defaultValue={optimQuality}
-            addonBefore="图片质量："
-            type="number"
-            onChange={e => {
-              this.debounceUpdateOptimParams(
-                "optimQuality",
-                e.target.valueAsNumber || 0
-              );
-            }}
-          />
-        </Col>
-      );
-      colList.push(
-        <Col key="widthCol" span={3}>
-          <Input
-            defaultValue={optimWidth}
-            addonBefore="图片宽度："
-            type="number"
-            onChange={e => {
-              this.debounceUpdateOptimParams(
-                "optimWidth",
-                e.target.valueAsNumber || 0
-              );
-            }}
-          />
-        </Col>
-      );
-      colList.push(
-        <Col key="heightCol" span={3}>
-          <Input
-            defaultValue={optimHeight}
-            addonBefore="图片高度："
-            type="number"
-            onChange={e => {
-              this.debounceUpdateOptimParams(
-                "optimHeight",
-                e.target.valueAsNumber || 0
-              );
-            }}
-          />
-        </Col>
-      );
-      colList.push(
-        <Col key="typeCol" span={2}>
-          <Select
-            placeholder="图片类型"
-            style={{
-              width: "100%"
-            }}
-            defaultValue={optimType || previewImage.type}
-            onChange={value => {
-              this.updateOptimParams("optimType", value);
-            }}
-          >
-            <Option value="png">PNG</Option>
-            <Option value="jpeg">JPEG</Option>
-            <Option value="webp">WEBP</Option>
-          </Select>
-        </Col>
-      );
-      colList.push(
-        <Col key="urlCol" span={5}>
-          <Input
-            readOnly
-            addonBefore="图片地址："
-            addonAfter={
-              <Icon
-                title="点击复制图片地址"
-                onClick={e => {
-                  copy(url, e.target);
-                  message.info("已成功复制图片地址");
-                }}
-                type="copy"
-              />
-            }
-            defaultValue={url}
-          />
-        </Col>
-      );
-    }
-
-    return (
-      <Card title={title} extra={close} size="small" className="previewWrapper">
-        <div className="content">
-          <div
-            className="imgWrapper"
-            style={imgStyle}
-            ref={this.previewImageRef}
-          >
-            <div style={optimStyle}></div>
-            <div className="imgOriginal">原图</div>
-            <div className="imgOptim">预览图</div>
-          </div>
-          <Row className="functions" gutter={12}>
-            {colList}
-            <Col span={8} className="tips">
-              <Icon
-                type="info-circle"
-                style={{
-                  marginRight: "3px"
-                }}
-              />
-              {tips.join("，")}
-            </Col>
-          </Row>
-        </div>
-      </Card>
-    );
   }
   renderList() {
     const { account } = this.props;
@@ -553,25 +199,15 @@ class FileList extends React.Component {
           return (
             <div className="op">
               {updateLink}
-              <a
-                style={{
-                  marginLeft: "5px"
-                }}
-                href="/copy"
-                onClick={e => {
-                  e.preventDefault();
-                  this.preview(record);
-                }}
-              >
+              <Link to={PREVIEW_PATH.replace(":id", record.id)}>
                 <Icon type="file-jpg" />
                 预览
-              </a>
+              </Link>
             </div>
           );
         }
       }
     ];
-    // TODO 增加搜索功能
     return (
       <div>
         <Card title="文件筛选" size="small" className="filter">
@@ -630,27 +266,12 @@ class FileList extends React.Component {
       </div>
     );
   }
-  handleMouseMove(e) {
-    const { previewImage } = this.state;
-    // 如果非预览，则直接返回
-    if (!previewImage) {
-      return;
-    }
-    const clientX = e.clientX;
-    if (clientX % 3 === 0) {
-      this.setState({
-        clientX
-      });
-    }
-  }
+
   render() {
     const { loading } = this.state;
     return (
-      <div className="FileList" onMouseMove={this.handleMouseMove.bind(this)}>
-        <Spin spinning={loading}>
-          {this.renderList()}
-          {this.renderPreview()}
-        </Spin>
+      <div className="FileList">
+        <Spin spinning={loading}>{this.renderList()}</Spin>
       </div>
     );
   }
