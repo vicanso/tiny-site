@@ -1,5 +1,8 @@
 import React from "react";
 import { Card } from "antd";
+import { Link } from "react-router-dom";
+
+import { PREVIEW_PATH } from "../../paths";
 
 import "./home.sass";
 
@@ -8,6 +11,12 @@ class Home extends React.Component {
     return (
       <div className="Home">
         <Card title="图片设置">
+          <h3>游客体验</h3>
+          <p>
+            可直接上传图片，选择需要压缩的质量与格式，直接下载保存文件。
+            <Link to={PREVIEW_PATH.replace(":id", 0)}>立即体验</Link>
+          </p>
+
           <h3>测试账号/密码：tiny/123456</h3>
           <p>
             默认生成的预览地址并没有针对性的设置，实际使用中可根据应用场景调整图片参数以适应各不同场景，参数按顺序添加至文件名中，可仅指定前置的参数，如需要指定图片宽度，则必须指定图片质量、高度，后续的参数则可忽略，参数如下：

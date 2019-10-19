@@ -16,6 +16,7 @@ package controller
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -28,6 +29,7 @@ import (
 	"github.com/vicanso/tiny-site/router"
 	"github.com/vicanso/tiny-site/service"
 	"github.com/vicanso/tiny-site/util"
+	"github.com/vicanso/tiny-site/validate"
 )
 
 type (
@@ -56,6 +58,14 @@ const (
 )
 
 type (
+	optimParams struct {
+		Base64     string `json:"base64,omitempty" valid:"-"`
+		Type       string `json:"type,omitempty" valid:"-"`
+		SourceType string `json:"sourceType,omitempty" valid:"-"`
+		Quality    int    `json:"quality,omitempty" valid:"-"`
+		Width      int    `json:"width,omitempty" valid:"-"`
+		Height     int    `json:"height,omitempty" valid:"-"`
+	}
 	optimImageInfo struct {
 		SourceType string `json:"sourceType,omitempty"`
 		Type       string `json:"type,omitempty"`
@@ -74,11 +84,12 @@ func init() {
 
 	g.GET("/v1/preview/:"+fileNameKey, ctrl.preview)
 	g.GET("/v1/optim/:"+fileNameKey, ctrl.optim)
+	g.POST("/v1/optim", ctrl.optimFromData)
 
 	g.GET("/v1/config", ctrl.config)
 }
 
-func optim(file string) (info *optimImageInfo, err error) {
+func optimFromFile(file string) (info *optimImageInfo, err error) {
 	ext := filepath.Ext(file)
 	if ext == "" {
 		err = errImageTypeIsInvalid
@@ -182,7 +193,7 @@ func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
 		file += ext
 		autoDetected = true
 	}
-	info, err := optim(file)
+	info, err := optimFromFile(file)
 	if err != nil {
 		return
 	}
@@ -207,11 +218,46 @@ func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
 
 func (ctrl imageCtrl) optim(c *elton.Context) (err error) {
 	file := c.Param(fileNameKey)
-	info, err := optim(file)
+	info, err := optimFromFile(file)
 	if err != nil {
 		return
 	}
 	c.Body = info
+	return
+}
+
+func (ctrl imageCtrl) optimFromData(c *elton.Context) (err error) {
+	params := new(optimParams)
+	err = validate.Do(params, c.RequestBody)
+	if err != nil {
+		return
+	}
+	buf, err := base64.StdEncoding.DecodeString(params.Base64)
+	if err != nil {
+		return
+	}
+	// 图片转换压缩
+	data, err := optimSrv.Image(service.ImageOptimParams{
+		Data:       buf,
+		SourceType: params.SourceType,
+		Type:       params.Type,
+		Quality:    params.Quality,
+		Width:      params.Width,
+		Height:     params.Height,
+	})
+	if err != nil {
+		return
+	}
+	c.Body = &optimImageInfo{
+		Data:       data,
+		SourceType: params.Type,
+		Type:       params.Type,
+		Quality:    params.Quality,
+		Width:      params.Width,
+		Height:     params.Height,
+		Size:       len(data),
+	}
+
 	return
 }
 

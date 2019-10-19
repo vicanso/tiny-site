@@ -1,5 +1,16 @@
 import React from "react";
-import { Spin, message, Icon, Card, Input, Row, Col, Select } from "antd";
+import {
+  Spin,
+  message,
+  Icon,
+  Card,
+  Input,
+  Row,
+  Col,
+  Select,
+  Upload,
+  Button
+} from "antd";
 import bytes from "bytes";
 import debounce from "debounce";
 
@@ -7,8 +18,11 @@ import * as fileService from "../../services/file";
 import * as imageService from "../../services/image";
 import { copy } from "../../helpers/util";
 import "./preview.sass";
+import { FIELS_UPLOAD } from "../../urls";
 
 const { Option } = Select;
+
+const { Dragger } = Upload;
 
 class Preview extends React.Component {
   state = {
@@ -45,6 +59,23 @@ class Preview extends React.Component {
       previewImage.type}`;
     return file;
   }
+  getParams() {
+    const {
+      optimQuality,
+      optimWidth,
+      optimHeight,
+      previewImage,
+      optimType
+    } = this.state;
+    return {
+      base64: previewImage.data,
+      type: optimType || previewImage.type,
+      sourceType: previewImage.type,
+      quality: optimQuality,
+      width: optimWidth,
+      height: optimHeight
+    };
+  }
   updateOptimParams(key, value) {
     const { previewImage, optimQuality } = this.state;
     if (Number.isInteger(value) && value < 0) {
@@ -68,6 +99,17 @@ class Preview extends React.Component {
       this.optimImage();
     });
   }
+  download() {
+    const { optimImageInfo } = this.state;
+    console.dir(optimImageInfo);
+    const name = this.getFileName();
+    const url = `data:image/${optimImageInfo.type};base64,${optimImageInfo.data}`;
+    let a = document.createElement("a");
+    let event = new MouseEvent("click");
+    a.download = name;
+    a.href = url;
+    a.dispatchEvent(event);
+  }
   async fetchConfig() {
     try {
       const data = await imageService.getConfig();
@@ -79,12 +121,22 @@ class Preview extends React.Component {
     }
   }
   async optimImage() {
+    const { optiming, id } = this.state;
+    if (optiming) {
+      return;
+    }
     const file = this.getFileName();
     this.setState({
       optiming: true
     });
     try {
-      const data = await imageService.optim(file);
+      let params = file;
+      let fn = imageService.optim;
+      if (!id) {
+        params = this.getParams();
+        fn = imageService.optimFromData;
+      }
+      const data = await fn(params);
       this.setState({
         optimImageInfo: data
       });
@@ -113,6 +165,13 @@ class Preview extends React.Component {
     const { id } = this.state;
     try {
       this.fetchConfig();
+      // 如果id为0，则表示直接上传文件预览
+      if (!id) {
+        this.setState({
+          inited: true
+        });
+        return;
+      }
       const data = await fileService.getByID(id, {
         fields: "*"
       });
@@ -129,8 +188,55 @@ class Preview extends React.Component {
       message.error(err.message);
     }
   }
+  renderUpload() {
+    const self = this;
+    const props = {
+      muttiple: false,
+      action: FIELS_UPLOAD,
+      onChange(info) {
+        const { status, response, name } = info.file;
+        if (status === "done") {
+          let type = response.type;
+          if (type === "jpg") {
+            type = "jpeg";
+          }
+          const img = new Image();
+          img.onload = () => {
+            self.setState(
+              {
+                previewImage: {
+                  name,
+                  size: response.size,
+                  data: response.data,
+                  type,
+                  width: img.width,
+                  height: img.height
+                }
+              },
+              () => {
+                self.optimImage();
+              }
+            );
+          };
+          img.src = `data:image/${type};base64,${response.data}`;
+        } else if (status === "error") {
+          message.error("上传文件失败");
+        }
+      }
+    };
+    return (
+      <Dragger {...props}>
+        <p className="ant-upload-drag-icon">
+          <Icon type="inbox" />
+        </p>
+        <p className="ant-upload-text">点击或拖动文件至此区域上传</p>
+        <p className="ant-upload-hint">支持PNG与JEPG图片</p>
+      </Dragger>
+    );
+  }
   renderPreview() {
     const {
+      id,
       optiming,
       previewImage,
       optimImageInfo,
@@ -142,7 +248,7 @@ class Preview extends React.Component {
       clientX
     } = this.state;
     if (!previewImage) {
-      return;
+      return this.renderUpload();
     }
     // 高度-(60 + 50) 60为顶部高度，50为底部工具栏高度
     // 宽度-25
@@ -316,25 +422,42 @@ class Preview extends React.Component {
           </Select>
         </Col>
       );
-      colList.push(
-        <Col key="urlCol" span={5}>
-          <Input
-            readOnly
-            addonBefore="图片地址："
-            addonAfter={
-              <Icon
-                title="点击复制图片地址"
-                onClick={e => {
-                  copy(url, e.target);
-                  message.info("已成功复制图片地址");
-                }}
-                type="copy"
-              />
-            }
-            defaultValue={url}
-          />
-        </Col>
-      );
+      if (id) {
+        colList.push(
+          <Col key="urlCol" span={5}>
+            <Input
+              readOnly
+              addonBefore="图片地址："
+              addonAfter={
+                <Icon
+                  title="点击复制图片地址"
+                  onClick={e => {
+                    copy(url, e.target);
+                    message.info("已成功复制图片地址");
+                  }}
+                  type="copy"
+                />
+              }
+              defaultValue={url}
+            />
+          </Col>
+        );
+      } else {
+        colList.push(
+          <Col key="urlCol" span={5}>
+            <Button
+              onClick={() => {
+                this.download();
+              }}
+              style={{
+                width: "100%"
+              }}
+            >
+              下载图片
+            </Button>
+          </Col>
+        );
+      }
     }
 
     return (
@@ -369,7 +492,6 @@ class Preview extends React.Component {
     const { inited } = this.state;
     return (
       <div className="Preview" onMouseMove={this.handleMouseMove.bind(this)}>
-        >
         {!inited && (
           <div className="loadingWrapper">
             <Spin />

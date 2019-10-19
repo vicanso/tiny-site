@@ -152,7 +152,7 @@ func init() {
 	)
 
 	// 上传文件
-	g.POST("/v1/upload", shouldLogined, ctrl.upload)
+	g.POST("/v1/upload", ctrl.upload)
 	// 更新文件
 	g.PATCH(
 		"/v1/upload/:fileID",
