@@ -23,6 +23,27 @@
 
 ![](./assets/file-preview.jpg)
 
+## HTTP API
+
+- `base64` 图片数据转换为base64
+- `type` 转换的图片类型
+- `sourceType` 原图片类型
+- `quality` 图片压缩质量，0为默认值，对于webp则表示无损压缩
+- `width` 图片宽度，0表示原有宽度
+- `height` 图片高度，0表示原有高度
+
+```bash
+curl 'https://tiny.aslant.site/images/v1/optim' -H 'content-type: application/json;charset=UTF-8' --data-binary '{"base64":"base64-data","type":"webp","sourceType":"png","quality":0,"width":0,"height":0}' --compressed
+```
+
+- `sourceType` 原图片类型
+- `type` 转换的图片类型
+- `data` 转换后的图片数据(base64)
+- `size` 图片大小(字节)
+```bash
+{"sourceType":"webp","type":"webp","data":"base64-data","size":1074}
+```
+
 ## 使用步骤
 
 ### 启动tiny压缩服务
