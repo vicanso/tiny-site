@@ -13,7 +13,9 @@
 
 ## 系统流程
 
-![](./assets/tiny.jpg)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/vicanso/tiny-site/master/assets/tiny.jpg">
+</p>
 
 ## 功能介绍
 
