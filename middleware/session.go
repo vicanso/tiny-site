@@ -15,6 +15,9 @@
 package middleware
 
 import (
+	"time"
+
+	"github.com/go-redis/redis"
 	"github.com/vicanso/elton"
 	session "github.com/vicanso/elton-session"
 	"github.com/vicanso/tiny-site/config"
@@ -22,14 +25,52 @@ import (
 	"github.com/vicanso/tiny-site/util"
 )
 
+type (
+	// RedisStore redis store for session
+	RedisStore struct {
+		client *redis.Client
+		prefix string
+	}
+)
+
+func (rs *RedisStore) getKey(key string) string {
+	return rs.prefix + key
+}
+
+// Get get the session from redis
+func (rs *RedisStore) Get(key string) ([]byte, error) {
+	buf, err := rs.client.Get(rs.getKey(key)).Bytes()
+	if err == redis.Nil {
+		return buf, nil
+	}
+	return buf, err
+}
+
+// Set set the session to redis
+func (rs *RedisStore) Set(key string, data []byte, ttl time.Duration) error {
+	return rs.client.Set(rs.getKey(key), data, ttl).Err()
+}
+
+// Destroy remove the session from redis
+func (rs *RedisStore) Destroy(key string) error {
+	return rs.client.Del(rs.getKey(key)).Err()
+}
+
+// NewRedisStore create new redis store instance
+func NewRedisStore(client *redis.Client, prefix string) *RedisStore {
+	rs := &RedisStore{}
+	rs.client = client
+	rs.prefix = prefix
+	return rs
+}
+
 // NewSession new session middleware
 func NewSession() elton.Handler {
 	client := helper.RedisGetClient()
 	if client == nil {
 		panic("session store need redis client")
 	}
-	store := session.NewRedisStore(client, nil)
-	store.Prefix = "ss-"
+	store := NewRedisStore(client, "ss-")
 	scf := config.GetSessionConfig()
 	return session.NewByCookie(session.CookieConfig{
 		Store:   store,

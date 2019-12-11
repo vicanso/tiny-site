@@ -16,10 +16,6 @@ var (
 	grpcConn *grpc.ClientConn
 )
 
-const (
-	defaultGRPCTImeout = 10 * time.Second
-)
-
 type (
 	// ImageOptimParams image optim params
 	ImageOptimParams struct {
