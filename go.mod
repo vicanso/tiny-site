@@ -12,7 +12,7 @@ require (
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/jinzhu/gorm v1.9.11
 	github.com/json-iterator/go v1.1.8
-	github.com/lib/pq v1.2.0
+	github.com/lib/pq v1.3.0
 	github.com/oklog/ulid/v2 v2.0.2
 	github.com/spf13/viper v1.6.1
 	github.com/stretchr/testify v1.4.0
@@ -30,12 +30,12 @@ require (
 	github.com/vicanso/elton-static-serve v0.1.1
 	github.com/vicanso/elton-stats v0.1.1
 	github.com/vicanso/elton-tracker v0.1.2
-	github.com/vicanso/go-axios v0.0.5
+	github.com/vicanso/go-axios v0.0.6
 	github.com/vicanso/hes v0.2.1
 	github.com/vicanso/ips v0.0.1
 	github.com/vicanso/tiny v1.0.1
 	go.uber.org/zap v1.13.0
-	golang.org/x/image v0.0.0-20191206065243-da761ea9ff43
-	google.golang.org/grpc v1.25.1
+	golang.org/x/image v0.0.0-20191214001246-9130b4cfad52
+	google.golang.org/grpc v1.26.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )

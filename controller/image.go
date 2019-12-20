@@ -47,7 +47,6 @@ var (
 var (
 	errImageTypeIsInvalid      = hes.New("image type is invalid")
 	errImageTypeIsNotSupported = hes.New("image type isn't supported")
-	errImageZoneIsInvalid      = hes.New("image zone is invalid")
 	errImageParamsIsInvalid    = hes.New("image params is invalid")
 )
 
