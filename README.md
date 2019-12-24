@@ -124,7 +124,7 @@ tiny:
 
 # 预览地址（根据实际使用配置预览地址，建议使用CDN，再设置CDN回源策略）
 imagePreview:
-  url: "http://localhost:7001/images/v1/preview/:file"
+  url: "http://localhost:7001/images/v1/preview/:zone/:file"
 ```
 
 ```bash

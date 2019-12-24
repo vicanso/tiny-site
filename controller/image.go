@@ -17,6 +17,7 @@ package controller
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -52,6 +53,7 @@ var (
 
 const (
 	fileNameKey = "file"
+	fileZoneKey = "zone"
 	// 默认的s-maxage为缓存10分钟
 	defaultSMaxAge = "10m"
 )
@@ -81,14 +83,15 @@ func init() {
 	ctrl := imageCtrl{}
 	g := router.NewGroup("/images")
 
-	g.GET("/v1/preview/:"+fileNameKey, ctrl.preview)
+	previewURL := fmt.Sprintf("/v1/preview/:%s/:%s", fileZoneKey, fileNameKey)
+	g.GET(previewURL, ctrl.preview)
 	g.GET("/v1/optim/:"+fileNameKey, ctrl.optim)
 	g.POST("/v1/optim", ctrl.optimFromData)
 
 	g.GET("/v1/config", ctrl.config)
 }
 
-func optimFromFile(file string) (info *optimImageInfo, err error) {
+func optimFromFile(file string, zone int) (info *optimImageInfo, err error) {
 	ext := filepath.Ext(file)
 	if ext == "" {
 		err = errImageTypeIsInvalid
@@ -144,6 +147,10 @@ func optimFromFile(file string) (info *optimImageInfo, err error) {
 	if err != nil {
 		return
 	}
+	if zone != 0 && f.Zone != zone {
+		err = errors.New("zone is invalid")
+		return
+	}
 	if width != 0 && width > f.Width {
 		width = f.Width
 	}
@@ -192,7 +199,13 @@ func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
 		file += ext
 		autoDetected = true
 	}
-	info, err := optimFromFile(file)
+	// zone主要用于从url中统计每个zone的访问量
+	zone, err := strconv.Atoi(c.Param(fileZoneKey))
+	if err != nil {
+		return
+	}
+
+	info, err := optimFromFile(file, zone)
 	if err != nil {
 		return
 	}
@@ -217,7 +230,7 @@ func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
 
 func (ctrl imageCtrl) optim(c *elton.Context) (err error) {
 	file := c.Param(fileNameKey)
-	info, err := optimFromFile(file)
+	info, err := optimFromFile(file, 0)
 	if err != nil {
 		return
 	}

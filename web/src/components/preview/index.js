@@ -101,7 +101,6 @@ class Preview extends React.Component {
   }
   download() {
     const { optimImageInfo } = this.state;
-    console.dir(optimImageInfo);
     const name = this.getFileName();
     const url = `data:image/${optimImageInfo.type};base64,${optimImageInfo.data}`;
     let a = document.createElement("a");
@@ -356,7 +355,9 @@ class Preview extends React.Component {
       optimStyle.backgroundColor = "rgba(255, 255, 255, 0.4)";
     }
     const file = this.getFileName();
-    const url = imageConfig.url.replace(":file", file);
+    const url = imageConfig.url
+      .replace(":zone", previewImage.zone)
+      .replace(":file", file);
     const colList = [];
     if (!optiming) {
       colList.push(

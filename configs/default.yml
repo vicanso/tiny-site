@@ -61,4 +61,4 @@ token:
 
 # 预览地址
 imagePreview:
-  url: "http://localhost:7001/images/v1/preview/:file"
+  url: "http://localhost:7001/images/v1/preview/:zone/:file"
