@@ -98,6 +98,12 @@ func main() {
 	warner404.On(func(ip string, createdAt int64) {
 		service.AlarmError("too many 404 request, client ip:" + ip)
 	})
+	// 定期清除warner中的过期数据
+	go func() {
+		for range time.NewTicker(5 * time.Minute).C {
+			warner404.ClearExpired()
+		}
+	}()
 
 	d.NotFoundHandler = func(resp http.ResponseWriter, req *http.Request) {
 		ip := elton.GetRealIP(req)
@@ -108,7 +114,7 @@ func main() {
 		)
 		resp.Header().Set(elton.HeaderContentType, elton.MIMEApplicationJSON)
 		resp.WriteHeader(http.StatusNotFound)
-		resp.Write([]byte(`{"statusCode": 404,"message": "Not found"}`))
+		_, _ = resp.Write([]byte(`{"statusCode": 404,"message": "Not found"}`))
 		warner404.Inc(ip, 1)
 	}
 
@@ -187,5 +193,8 @@ func main() {
 	logger.Info("start to linstening...",
 		zap.String("listen", config.GetListen()),
 	)
-	d.ListenAndServe(config.GetListen())
+	err = d.ListenAndServe(config.GetListen())
+	if err != nil {
+		panic(err)
+	}
 }
