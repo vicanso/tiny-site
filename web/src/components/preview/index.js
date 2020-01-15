@@ -44,6 +44,21 @@ class Preview extends React.Component {
     this.debounceUpdateOptimParams = debounce((...args) => {
       this.updateOptimParams(...args);
     }, 1000);
+    this._onPaste = e => {
+      if (e.clipboardData && e.clipboardData.getData) {
+        const url = e.clipboardData.getData("Text");
+        if (url.indexOf("http://") === 0 || url.indexOf("https://") === 0) {
+          // 通过URL获取图片预览
+          this.downloadOriginalImage(url);
+          return;
+        }
+        message.error(`仅支持http(s)形式，"${url}"不符合`);
+      }
+    };
+    window.document.addEventListener("paste", this._onPaste);
+  }
+  componentWillUnmount() {
+    window.document.removeEventListener("paste", this._onPaste);
   }
   getFileName() {
     const {
@@ -187,6 +202,41 @@ class Preview extends React.Component {
       message.error(err.message);
     }
   }
+  async downloadOriginalImage(fileURL) {
+    try {
+      const data = await fileService.downloadFile(fileURL);
+      this.setOrginalImage(data, data.name);
+    } catch (err) {
+      message.error("下载文件失败，" + err.message);
+    }
+  }
+  setOrginalImage(response, name) {
+    const self = this;
+
+    let type = response.type;
+    if (type === "jpg") {
+      type = "jpeg";
+    }
+    const img = new Image();
+    img.onload = () => {
+      self.setState(
+        {
+          previewImage: {
+            name,
+            size: response.size,
+            data: response.data,
+            type,
+            width: img.width,
+            height: img.height
+          }
+        },
+        () => {
+          self.optimImage();
+        }
+      );
+    };
+    img.src = `data:image/${type};base64,${response.data}`;
+  }
   renderUpload() {
     const self = this;
     const props = {
@@ -195,29 +245,7 @@ class Preview extends React.Component {
       onChange(info) {
         const { status, response, name } = info.file;
         if (status === "done") {
-          let type = response.type;
-          if (type === "jpg") {
-            type = "jpeg";
-          }
-          const img = new Image();
-          img.onload = () => {
-            self.setState(
-              {
-                previewImage: {
-                  name,
-                  size: response.size,
-                  data: response.data,
-                  type,
-                  width: img.width,
-                  height: img.height
-                }
-              },
-              () => {
-                self.optimImage();
-              }
-            );
-          };
-          img.src = `data:image/${type};base64,${response.data}`;
+          self.setOrginalImage(response, name);
         } else if (status === "error") {
           message.error("上传文件失败");
         }
@@ -228,7 +256,9 @@ class Preview extends React.Component {
         <p className="ant-upload-drag-icon">
           <Icon type="inbox" />
         </p>
-        <p className="ant-upload-text">点击或拖动文件至此区域上传</p>
+        <p className="ant-upload-text">
+          点击或拖动文件至此区域上传，支持复制URL后在此页面粘贴即可上传
+        </p>
         <p className="ant-upload-hint">支持PNG与JEPG图片</p>
       </Dragger>
     );

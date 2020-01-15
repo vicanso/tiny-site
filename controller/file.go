@@ -24,8 +24,10 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/vicanso/elton"
+	"github.com/vicanso/go-axios"
 	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/router"
@@ -160,6 +162,7 @@ func init() {
 		newTracker(cs.ActionFileUpdate),
 		ctrl.updateUpload,
 	)
+	g.GET("/v1/download", ctrl.download)
 
 	// 获取文件空间列表
 	g.GET("/v1/zones", shouldLogined, ctrl.listZone)
@@ -335,6 +338,28 @@ func (ctrl fileCtrl) upload(c *elton.Context) (err error) {
 		Name: util.GenUlid(),
 		Data: buf,
 		Type: t,
+		Size: len(buf),
+	}
+
+	c.Body = info
+	return
+}
+
+func (ctrl fileCtrl) download(c *elton.Context) (err error) {
+	file := c.QueryParam("file")
+	if file == "" {
+		err = hes.New("file can't be nil")
+		return
+	}
+	resp, err := axios.Get(file)
+	if err != nil {
+		return
+	}
+	buf := resp.Data
+	info := &fileInfo{
+		Name: util.GenUlid(),
+		Data: buf,
+		Type: strings.Replace(resp.Headers.Get("Content-Type"), "image/", "", 1),
 		Size: len(buf),
 	}
 

@@ -1,6 +1,7 @@
 import axios from "axios";
 
 import {
+  FIELS_DOWNLOAD,
   FIELS_UPLOAD_UPDATE,
   FILES_DETAIL,
   FILES_ZONES_LIST_MINE,
@@ -64,5 +65,13 @@ export async function getByID(id, params) {
   const { data } = await axios.get(FILES_DETAIL.replace(":fileID", id), {
     params
   });
+  return data;
+}
+
+// downloadFile 下载文件
+export async function downloadFile(fileURL) {
+  const { data } = await axios.get(
+    FIELS_DOWNLOAD + "?file=" + encodeURIComponent(fileURL)
+  );
   return data;
 }

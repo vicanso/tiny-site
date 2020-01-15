@@ -25,6 +25,7 @@ export const FILES = `${prefix}/files`;
 export const FILES_LIST = `${FILES}/v1`;
 export const FILES_DETAIL = `${FILES}/v1/detail/:fileID`;
 export const FIELS_UPLOAD = `${FILES}/v1/upload`;
+export const FIELS_DOWNLOAD = `${FILES}/v1/download`;
 export const FIELS_UPLOAD_UPDATE = `${FILES}/v1/upload/:fileID`;
 export const FILES_ZONES_LIST_MINE = `${FILES}/v1/zones/mine`;
 export const FILES_ZONES_LIST = `${FILES}/v1/zones`;
