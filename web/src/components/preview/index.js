@@ -475,18 +475,31 @@ class Preview extends React.Component {
         );
       } else {
         colList.push(
-          <Col key="urlCol" span={5}>
+          <Col key="baseCol" span={2}>
             <Button
-              onClick={() => {
-                this.download();
+              onClick={(e) => {
+                copy(`data:image/${previewImage.type};base64,${previewImage.data}`, e.target);
+                message.info("已成功复制图片base64数据");
               }}
               style={{
                 width: "100%"
               }}
             >
-              下载图片
+              base64 
             </Button>
-          </Col>
+          </Col>,
+          <Col key="urlCol" span={3}>
+          <Button
+            onClick={() => {
+              this.download();
+            }}
+            style={{
+              width: "100%"
+            }}
+          >
+            下载图片
+          </Button>
+        </Col>
         );
       }
     }

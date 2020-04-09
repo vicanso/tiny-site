@@ -15,4 +15,4 @@ postgres:
 
 # 预览地址
 imagePreview:
-  url: "https://tiny.aslant.site/@images/:zone/:file"
+  url: "https://tiny.npmtrend.com/@images/:zone/:file"
