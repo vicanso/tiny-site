@@ -3,7 +3,7 @@ module github.com/vicanso/tiny-site
 go 1.14
 
 require (
-	github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496
+	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fogleman/gg v1.3.0
 	github.com/go-redis/redis v6.15.7+incompatible
