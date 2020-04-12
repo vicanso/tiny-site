@@ -367,11 +367,11 @@ func (u *UserSession) IsAdmin() bool {
 
 // NewUserSession create a user session
 func NewUserSession(c *elton.Context) *UserSession {
-	v := c.Get(session.Key)
+	v, _ := c.Get(session.Key)
 	if v == nil {
 		return nil
 	}
-	data := c.Get(cs.UserSession)
+	data, _ := c.Get(cs.UserSession)
 	if data != nil {
 		us, ok := data.(*UserSession)
 		if ok {

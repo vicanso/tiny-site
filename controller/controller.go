@@ -28,7 +28,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 
-	tracker "github.com/vicanso/elton-tracker"
+	eltonMid "github.com/vicanso/elton/middleware"
 )
 
 var (
@@ -75,8 +75,8 @@ var (
 )
 
 func newTracker(action string) elton.Handler {
-	return tracker.New(tracker.Config{
-		OnTrack: func(info *tracker.Info, c *elton.Context) {
+	return eltonMid.NewTracker(eltonMid.TrackerConfig{
+		OnTrack: func(info *eltonMid.TrackerInfo, c *elton.Context) {
 			account := ""
 			us := service.NewUserSession(c)
 			if us != nil {

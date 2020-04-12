@@ -21,14 +21,8 @@ import (
 	"github.com/dustin/go-humanize"
 	warner "github.com/vicanso/count-warner"
 	"github.com/vicanso/elton"
-	bodyparser "github.com/vicanso/elton-body-parser"
-	errorHandler "github.com/vicanso/elton-error-handler"
-	etag "github.com/vicanso/elton-etag"
-	fresh "github.com/vicanso/elton-fresh"
-	recover "github.com/vicanso/elton-recover"
-	responder "github.com/vicanso/elton-responder"
 	routerLimiter "github.com/vicanso/elton-router-concurrent-limiter"
-	stats "github.com/vicanso/elton-stats"
+	eltonMid "github.com/vicanso/elton/middleware"
 	"github.com/vicanso/hes"
 
 	"go.uber.org/zap"
@@ -119,13 +113,13 @@ func main() {
 	}
 
 	// 捕捉panic异常，避免程序崩溃
-	d.Use(recover.New())
+	d.Use(eltonMid.NewRecover())
 
 	d.Use(middleware.NewEntry())
 
 	// 接口相关统计信息
-	d.Use(stats.New(stats.Config{
-		OnStats: func(info *stats.Info, c *elton.Context) {
+	d.Use(eltonMid.NewStats(eltonMid.StatsConfig{
+		OnStats: func(info *eltonMid.StatsInfo, c *elton.Context) {
 			// ping 的日志忽略
 			if info.URI == "/ping" {
 				return
@@ -144,7 +138,7 @@ func main() {
 	}))
 
 	// 错误处理，将错误转换为json响应
-	d.Use(errorHandler.NewDefault())
+	d.Use(eltonMid.NewDefaultError())
 
 	// IP限制
 	d.Use(middleware.NewIPBlock())
@@ -164,20 +158,20 @@ func main() {
 	// d.Use(compress.NewDefault())
 
 	// etag与fresh的处理
-	d.Use(fresh.NewDefault())
-	d.Use(etag.NewDefault())
+	d.Use(eltonMid.NewDefaultFresh())
+	d.Use(eltonMid.NewDefaultETag())
 
 	// 对响应数据 c.Body 转换为相应的json响应
-	d.Use(responder.NewDefault())
+	d.Use(eltonMid.NewDefaultResponder())
 
 	// 读取读取body的数的，转换为json bytes
-	bodyparserConfig := bodyparser.Config{
+	bodyparserConfig := eltonMid.BodyParserConfig{
 		// 放宽5MB
 		Limit: 5 * 1024 * 1024,
 	}
-	bodyparserConfig.AddDecoder(bodyparser.NewGzipDecoder())
-	bodyparserConfig.AddDecoder(bodyparser.NewJSONDecoder())
-	d.Use(bodyparser.New(bodyparserConfig))
+	bodyparserConfig.AddDecoder(eltonMid.NewGzipDecoder())
+	bodyparserConfig.AddDecoder(eltonMid.NewJSONDecoder())
+	d.Use(eltonMid.NewBodyParser(bodyparserConfig))
 
 	// 初始化路由
 	router.Init(d)
