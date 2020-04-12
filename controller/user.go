@@ -19,9 +19,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/middleware"
 	"github.com/vicanso/tiny-site/validate"
-	"github.com/vicanso/hes"
 
 	"github.com/vicanso/elton"
 	"github.com/vicanso/tiny-site/config"
@@ -90,7 +90,7 @@ func init() {
 	// 更新用户信息
 	g.PATCH(
 		// 因为与/me有冲突，因此路径增加update
-		"/v1/update/:userID",
+		"/v1/update/{userID}",
 		shouldBeAdmin,
 		ctrl.update,
 	)

@@ -137,7 +137,7 @@ func init() {
 	// 获取文件列表
 	g.GET("/v1", shouldLogined, ctrl.list)
 	// 获取文件详情
-	g.GET("/v1/detail/:fileID", shouldLogined, ctrl.detail)
+	g.GET("/v1/detail/{fileID}", shouldLogined, ctrl.detail)
 	// 创建文件
 	g.POST(
 		"/v1/upload/save",
@@ -157,7 +157,7 @@ func init() {
 	g.POST("/v1/upload", ctrl.upload)
 	// 更新文件
 	g.PATCH(
-		"/v1/upload/:fileID",
+		"/v1/upload/{fileID}",
 		shouldLogined,
 		newTracker(cs.ActionFileUpdate),
 		ctrl.updateUpload,
@@ -174,7 +174,7 @@ func init() {
 
 	// file zone更新
 	g.PATCH(
-		"/v1/zones/:fileZoneID",
+		"/v1/zones/{fileZoneID}",
 		shouldLogined,
 		shouldAdminOrFileZoneOwner,
 		newTracker(cs.ActionFileZoneUpdate),

@@ -76,13 +76,13 @@ func init() {
 		ctrl.add,
 	)
 	g.PATCH(
-		"/v1/:configID",
+		"/v1/{configID}",
 		newTracker(cs.ActionConfigurationUpdate),
 		shouldBeAdmin,
 		ctrl.update,
 	)
 	g.DELETE(
-		"/v1/:configID",
+		"/v1/{configID}",
 		newTracker(cs.ActionConfigurationDelete),
 		shouldBeAdmin,
 		ctrl.delete,

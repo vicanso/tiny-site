@@ -83,9 +83,9 @@ func init() {
 	ctrl := imageCtrl{}
 	g := router.NewGroup("/images")
 
-	previewURL := fmt.Sprintf("/v1/preview/:%s/:%s", fileZoneKey, fileNameKey)
+	previewURL := fmt.Sprintf("/v1/preview/{%s}/{%s}", fileZoneKey, fileNameKey)
 	g.GET(previewURL, ctrl.preview)
-	g.GET("/v1/optim/:"+fileNameKey, ctrl.optim)
+	g.GET("/v1/optim/{"+fileNameKey+"}", ctrl.optim)
 	g.POST("/v1/optim", ctrl.optimFromData)
 
 	g.GET("/v1/config", ctrl.config)
