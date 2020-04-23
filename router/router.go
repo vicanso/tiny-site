@@ -31,9 +31,7 @@ func NewGroup(path string, handlerList ...elton.Handler) *elton.Group {
 	return g
 }
 
-// Init init router
-func Init(d *elton.Elton) {
-	for _, g := range groupList {
-		d.AddGroup(g)
-	}
+// GetGroups get group list
+func GetGroups() []*elton.Group {
+	return groupList
 }
