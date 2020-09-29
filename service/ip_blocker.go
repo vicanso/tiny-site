@@ -46,6 +46,6 @@ func ResetIPBlocker(ipList []string) {
 // IsBlockIP check the ip is blocked
 func IsBlockIP(ip string) bool {
 	iPS := (*ips.IPS)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&ipBlocker.IPS))))
-	blocked := iPS.Exists(ip)
+	blocked := iPS.Contains(ip)
 	return blocked
 }

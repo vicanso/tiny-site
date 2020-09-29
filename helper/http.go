@@ -17,14 +17,16 @@ package helper
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/vicanso/elton"
 
 	"github.com/vicanso/hes"
 
-	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/go-axios"
+	"github.com/vicanso/tiny-site/cs"
+	"github.com/vicanso/tiny-site/util"
 	"go.uber.org/zap"
 )
 
@@ -73,36 +75,42 @@ func newConvertResponseToError(serviceName string) axios.ResponseInterceptor {
 	}
 }
 
-// newOnError new an error listener
+// newOnError 新建error的处理函数
 func newOnError(serviceName string) axios.OnError {
 	return func(err error, conf *axios.Config) (newErr error) {
-		e, ok := err.(*axios.Error)
 		id := conf.GetString(cs.CID)
-		if ok {
-			code := e.Code
-
-			he := &hes.Error{
-				StatusCode: code,
-				Message:    e.Message,
-				ID:         id,
-			}
-			if code < http.StatusBadRequest {
-				he.Exception = true
-				he.StatusCode = http.StatusInternalServerError
-			}
-
-			// 请求超时
-			if e.Timeout() {
-				he.Message = "Timeout"
-			}
-			if !isProduction() {
-				he.Extra = map[string]interface{}{
-					"route":   conf.Route,
-					"service": serviceName,
-				}
-			}
-			newErr = he
+		code := -1
+		if conf.Response != nil {
+			code = conf.Response.Status
 		}
+		var he *hes.Error
+		if hes.IsError(err) {
+			he, _ = err.(*hes.Error)
+		} else {
+			he = hes.Wrap(err)
+			he.StatusCode = code
+		}
+		// 如果未设置http响应码，则设置为500
+		if he.StatusCode == 0 {
+			he.StatusCode = http.StatusInternalServerError
+		}
+
+		if he.Extra == nil {
+			he.Extra = make(map[string]interface{})
+		}
+
+		// 请求超时
+		e, ok := err.(*url.Error)
+		if ok && e.Timeout() {
+			he.Extra["category"] = "timeout"
+		}
+		if !util.IsProduction() {
+			he.Extra["requestRoute"] = conf.Route
+			he.Extra["requestService"] = serviceName
+			he.Extra["requestCURL"] = conf.CURL()
+			// TODO 是否非生产环境增加更多的信息，方便测试时确认问题
+		}
+		newErr = he
 		logger.Info("http error",
 			zap.String("service", serviceName),
 			zap.String("cid", id),

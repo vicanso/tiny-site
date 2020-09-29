@@ -60,7 +60,7 @@ func (ctrl commonCtrl) location(c *elton.Context) (err error) {
 
 func (ctrl commonCtrl) routers(c *elton.Context) (err error) {
 	c.Body = map[string]interface{}{
-		"routers": c.Elton().Routers,
+		"routers": c.Elton().GetRouters(),
 	}
 	return
 }

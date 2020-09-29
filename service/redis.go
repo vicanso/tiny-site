@@ -33,6 +33,11 @@ type (
 	RedisSrv struct{}
 )
 
+// RedisIsNilError 判断是否redis的nil error
+func RedisIsNilError(err error) bool {
+	return err == redis.Nil
+}
+
 // RedisPing redis ping
 func RedisPing() (err error) {
 	_, err = redisGetClient().Ping().Result()
@@ -83,6 +88,15 @@ func (srv *RedisSrv) Get(key string) (result string, err error) {
 	result, err = redisGetClient().Get(key).Result()
 	// key不存在则不返回出错
 	if err == redis.Nil {
+		err = nil
+	}
+	return
+}
+
+// GetIgnoreNilErr 获取key的值并忽略nil error
+func (srv *RedisSrv) GetIgnoreNilErr(key string) (result string, err error) {
+	result, err = srv.Get(key)
+	if RedisIsNilError(err) {
 		err = nil
 	}
 	return

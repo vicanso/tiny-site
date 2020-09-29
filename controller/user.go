@@ -306,16 +306,13 @@ func (ctrl userCtrl) refresh(c *elton.Context) (err error) {
 		return
 	}
 	// 更新session
-	err = c.AddSignedCookie(&http.Cookie{
+	c.AddSignedCookie(&http.Cookie{
 		Name:     scf.Key,
 		Value:    cookie.Value,
 		Path:     scf.CookiePath,
 		MaxAge:   int(scf.TTL.Seconds()),
 		HttpOnly: true,
 	})
-	if err != nil {
-		return
-	}
 
 	c.NoContent()
 	return

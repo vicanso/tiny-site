@@ -21,7 +21,6 @@ import (
 	"github.com/dustin/go-humanize"
 	warner "github.com/vicanso/count-warner"
 	"github.com/vicanso/elton"
-	routerLimiter "github.com/vicanso/elton-router-concurrent-limiter"
 	eltonMid "github.com/vicanso/elton/middleware"
 	"github.com/vicanso/hes"
 	"golang.org/x/net/http2"
@@ -63,7 +62,7 @@ func main() {
 	// 如果1分钟出现超过5次未处理异常
 	warnerException := warner.NewWarner(60*time.Second, 5)
 	warnerException.ResetOnWarn = true
-	warnerException.On(func(_ string, _ int64) {
+	warnerException.On(func(_ string, _ warner.Count) {
 		service.AlarmError("too many uncaught exception")
 	})
 	e.OnError(func(c *elton.Context, err error) {
@@ -91,7 +90,7 @@ func main() {
 	// 如果1分钟同一个IP出现60次404
 	warner404 := warner.NewWarner(60*time.Second, 60)
 	warner404.ResetOnWarn = true
-	warner404.On(func(ip string, createdAt int64) {
+	warner404.On(func(ip string, _ warner.Count) {
 		service.AlarmError("too many 404 request, client ip:" + ip)
 	})
 	// 定期清除warner中的过期数据
@@ -149,12 +148,12 @@ func main() {
 	e.Use(middleware.NewRouterController())
 
 	// 路由并发限制
-	routerLimitConfig := config.GetRouterConcurrentLimit()
-	if len(routerLimitConfig) != 0 {
-		e.Use(routerLimiter.New(routerLimiter.Config{
-			Limiter: routerLimiter.NewLocalLimiter(routerLimitConfig),
-		}))
-	}
+	// routerLimitConfig := config.GetRouterConcurrentLimit()
+	// if len(routerLimitConfig) != 0 {
+	// 	e.Use(routerLimiter.New(routerLimiter.Config{
+	// 		Limiter: routerLimiter.NewLocalLimiter(routerLimitConfig),
+	// 	}))
+	// }
 
 	// etag与fresh的处理
 	e.Use(eltonMid.NewDefaultFresh())
