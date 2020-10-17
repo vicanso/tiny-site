@@ -55,7 +55,7 @@ const (
 	fileNameKey = "file"
 	fileZoneKey = "zone"
 	// 默认的s-maxage为缓存10分钟
-	defaultSMaxAge = "10m"
+	defaultSMaxAge = 10 * time.Minute
 )
 
 type (
@@ -215,12 +215,12 @@ func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
 	}
 	if info.MaxAge != "" {
 		// 如果自动生成后缀的，仅可客户端缓存
+		d, _ := time.ParseDuration(info.MaxAge)
 		if autoDetected {
-			d, _ := time.ParseDuration(info.MaxAge)
 			c.SetHeader(elton.HeaderCacheControl, fmt.Sprintf("private, max-age=%d", int(d.Seconds())))
 		} else {
-			// 设置缓存服务的缓存时长
-			c.CacheMaxAge(info.MaxAge, defaultSMaxAge)
+			// 	// 设置缓存服务的缓存时长
+			c.CacheMaxAge(d, defaultSMaxAge)
 		}
 	}
 	c.SetContentTypeByExt(ext)

@@ -16,7 +16,7 @@ postgres:
   port: 5432
   user: vicanso 
   dbname: tiny
-  password: 123456
+  password: A123456
   sslmode: disable
 
 # session的相关配置
