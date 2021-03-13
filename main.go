@@ -62,7 +62,7 @@ func main() {
 	// 如果1分钟出现超过5次未处理异常
 	warnerException := warner.NewWarner(60*time.Second, 5)
 	warnerException.ResetOnWarn = true
-	warnerException.On(func(_ string, _ warner.Count) {
+	warnerException.On(func(_ string, _ int) {
 		service.AlarmError("too many uncaught exception")
 	})
 	e.OnError(func(c *elton.Context, err error) {
@@ -90,7 +90,7 @@ func main() {
 	// 如果1分钟同一个IP出现60次404
 	warner404 := warner.NewWarner(60*time.Second, 60)
 	warner404.ResetOnWarn = true
-	warner404.On(func(ip string, _ warner.Count) {
+	warner404.On(func(ip string, _ int) {
 		service.AlarmError("too many 404 request, client ip:" + ip)
 	})
 	// 定期清除warner中的过期数据

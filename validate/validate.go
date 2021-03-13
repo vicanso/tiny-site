@@ -19,12 +19,10 @@ import (
 	"regexp"
 
 	"github.com/asaskevich/govalidator"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/vicanso/hes"
 )
 
 var (
-	standardJSON         = jsoniter.ConfigCompatibleWithStandardLibrary
 	paramTagRegexMap     = govalidator.ParamTagRegexMap
 	paramTagMap          = govalidator.ParamTagMap
 	customTypeTagMap     = govalidator.CustomTypeTagMap
@@ -100,21 +98,6 @@ func checkASCIIStringLength(i interface{}, min, max int) bool {
 		return false
 	}
 	if !govalidator.IsASCII(value) {
-		return false
-	}
-	size := len(value)
-	if size < min || size > max {
-		return false
-	}
-	return true
-}
-
-func checkAlphaStringLength(i interface{}, min, max int) bool {
-	value, ok := i.(string)
-	if !ok {
-		return false
-	}
-	if !govalidator.IsAlpha(value) {
 		return false
 	}
 	size := len(value)

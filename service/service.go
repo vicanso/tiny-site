@@ -18,7 +18,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/vicanso/tiny-site/helper"
 	"github.com/vicanso/tiny-site/log"
-	"github.com/vicanso/tiny-site/util"
 )
 
 var (
@@ -31,8 +30,7 @@ var (
 	pgFormatOrder  = helper.PGFormatOrder
 	pgFormatSelect = helper.PGFormatSelect
 
-	nowString = util.NowString
-	logger    = log.Default()
+	logger = log.Default()
 
 	redisSrv = new(RedisSrv)
 )

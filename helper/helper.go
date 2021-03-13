@@ -17,11 +17,9 @@ package helper
 import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/vicanso/tiny-site/log"
-	"github.com/vicanso/tiny-site/util"
 )
 
 var (
 	logger       = log.Default()
 	standardJSON = jsoniter.ConfigCompatibleWithStandardLibrary
-	isProduction = util.IsProduction
 )

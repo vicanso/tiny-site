@@ -58,7 +58,7 @@ func init() {
 // Image image optim
 func (srv *OptimSrv) Image(params ImageOptimParams) (data []byte, err error) {
 	client := pb.NewOptimClient(grpcConn)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	in := &pb.OptimRequest{
 		Data:    params.Data,
@@ -72,6 +72,8 @@ func (srv *OptimSrv) Image(params ImageOptimParams) (data []byte, err error) {
 		in.Output = pb.Type_PNG
 	case "webp":
 		in.Output = pb.Type_WEBP
+	case "avif":
+		in.Output = pb.Type_AVIF
 	default:
 		in.Output = pb.Type_JPEG
 	}

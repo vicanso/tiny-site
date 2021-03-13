@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"mime"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -43,6 +44,7 @@ var (
 		"jpeg",
 		"jpg",
 		"webp",
+		"avif",
 	}
 )
 var (
@@ -80,6 +82,7 @@ type (
 )
 
 func init() {
+	mime.AddExtensionType(".avif", "image/avif")
 	ctrl := imageCtrl{}
 	g := router.NewGroup("/images")
 

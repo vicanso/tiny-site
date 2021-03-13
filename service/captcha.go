@@ -31,10 +31,6 @@ import (
 	"golang.org/x/image/font/gofont/goregular"
 )
 
-var (
-	fontPath string
-)
-
 const (
 	captchaKeyPrefix = "captcha-"
 )

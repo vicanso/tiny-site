@@ -450,6 +450,7 @@ class Preview extends React.Component {
             <Option value="png">PNG</Option>
             <Option value="jpeg">JPEG</Option>
             <Option value="webp">WEBP</Option>
+            <Option value="avif">AVIF</Option>
           </Select>
         </Col>
       );

@@ -6,7 +6,7 @@ RUN cd /tiny-site/web \
   && yarn build \
   && rm -rf node_module
 
-FROM golang:1.15-alpine as builder
+FROM golang:1.16-alpine as builder
 
 COPY --from=webbuilder /tiny-site /tiny-site
 
