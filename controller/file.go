@@ -20,7 +20,6 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
-	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -316,15 +315,10 @@ func (ctrl fileCtrl) innerCreate(c *elton.Context) (err error) {
 }
 
 func (ctrl fileCtrl) upload(c *elton.Context) (err error) {
-	file, header, err := c.Request.FormFile("file")
+	buf, header, err := c.ReadFile("file")
 	if err != nil {
 		return
 	}
-	buf, err := ioutil.ReadAll(file)
-	if err != nil {
-		return
-	}
-
 	if len(buf) > maxFileSize {
 		err = errFileSizeTooLarge
 		return

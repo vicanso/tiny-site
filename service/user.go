@@ -15,6 +15,7 @@
 package service
 
 import (
+	"context"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -296,7 +297,7 @@ func (u *UserSession) GetAccount() string {
 
 // SetAccount set the account
 func (u *UserSession) SetAccount(account string) error {
-	return u.se.Set(UserAccount, account)
+	return u.se.Set(context.Background(), UserAccount, account)
 }
 
 // GetUpdatedAt get updated at
@@ -306,7 +307,7 @@ func (u *UserSession) GetUpdatedAt() string {
 
 // SetLoginAt set the login at
 func (u *UserSession) SetLoginAt(date string) error {
-	return u.se.Set(UserLoginAt, date)
+	return u.se.Set(context.Background(), UserLoginAt, date)
 }
 
 // GetLoginAt get login at
@@ -316,7 +317,7 @@ func (u *UserSession) GetLoginAt() string {
 
 // SetLoginToken get user login token
 func (u *UserSession) SetLoginToken(token string) error {
-	return u.se.Set(UserLoginToken, token)
+	return u.se.Set(context.Background(), UserLoginToken, token)
 }
 
 // GetLoginToken get user login token
@@ -326,7 +327,7 @@ func (u *UserSession) GetLoginToken() string {
 
 // SetRoles set user roles
 func (u *UserSession) SetRoles(roles []string) error {
-	return u.se.Set(UserRoles, roles)
+	return u.se.Set(context.Background(), UserRoles, roles)
 }
 
 // GetRoles get user roles
@@ -347,12 +348,12 @@ func (u *UserSession) GetRoles() []string {
 
 // Destroy destroy user session
 func (u *UserSession) Destroy() error {
-	return u.se.Destroy()
+	return u.se.Destroy(context.Background())
 }
 
 // Refresh refresh user session
 func (u *UserSession) Refresh() error {
-	return u.se.Refresh()
+	return u.se.Refresh(context.Background())
 }
 
 // ClearSessionID clear session id

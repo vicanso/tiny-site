@@ -15,6 +15,7 @@
 package middleware
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -38,7 +39,7 @@ func (rs *RedisStore) getKey(key string) string {
 }
 
 // Get get the session from redis
-func (rs *RedisStore) Get(key string) ([]byte, error) {
+func (rs *RedisStore) Get(_ context.Context, key string) ([]byte, error) {
 	buf, err := rs.client.Get(rs.getKey(key)).Bytes()
 	if err == redis.Nil {
 		return buf, nil
@@ -47,12 +48,12 @@ func (rs *RedisStore) Get(key string) ([]byte, error) {
 }
 
 // Set set the session to redis
-func (rs *RedisStore) Set(key string, data []byte, ttl time.Duration) error {
+func (rs *RedisStore) Set(_ context.Context, key string, data []byte, ttl time.Duration) error {
 	return rs.client.Set(rs.getKey(key), data, ttl).Err()
 }
 
 // Destroy remove the session from redis
-func (rs *RedisStore) Destroy(key string) error {
+func (rs *RedisStore) Destroy(_ context.Context, key string) error {
 	return rs.client.Del(rs.getKey(key)).Err()
 }
 
