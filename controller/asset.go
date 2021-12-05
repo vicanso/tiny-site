@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,88 +12,62 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// 此controller提供各静态文件的响应处理，
+// 主要是管理系统的前端代码，对于资源等（如图片）尽可能不要打包进入程序
+
 package controller
 
 import (
-	"bytes"
-	"io"
-	"os"
 	"time"
 
-	"github.com/gobuffalo/packr/v2"
 	"github.com/vicanso/elton"
+	M "github.com/vicanso/elton/middleware"
+	"github.com/vicanso/tiny-site/asset"
 	"github.com/vicanso/tiny-site/router"
-
-	eltonMid "github.com/vicanso/elton/middleware"
 )
 
 type (
 	// assetCtrl asset ctrl
-	assetCtrl struct {
-	}
-	staticFile struct {
-		box *packr.Box
-	}
+	assetCtrl struct{}
 )
 
-var (
-	box = packr.New("asset", "../web/build")
-)
-
-func (sf *staticFile) Exists(file string) bool {
-	return sf.box.Has(file)
-}
-func (sf *staticFile) Get(file string) ([]byte, error) {
-	return sf.box.Find(file)
-}
-func (sf *staticFile) Stat(file string) os.FileInfo {
-	return nil
-}
-func (sf *staticFile) NewReader(file string) (io.Reader, error) {
-	buf, err := sf.Get(file)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewReader(buf), nil
-}
+var assetFS = M.NewEmbedStaticFS(asset.GetFS(), "dist")
 
 func init() {
 	g := router.NewGroup("")
 	ctrl := assetCtrl{}
-	g.GET("/", ctrl.index)
-	g.GET("/favicon.ico", ctrl.favIcon)
+	g.GET("/", ctrl.getIndex)
+	g.GET("/favicon.{ext}", ctrl.getFavIcon)
 
-	sf := &staticFile{
-		box: box,
-	}
-	g.GET("/static/*", eltonMid.NewStaticServe(sf, eltonMid.StaticServeConfig{
-		Path: "/static",
+	g.GET("/static/*", M.NewStaticServe(assetFS, M.StaticServeConfig{
 		// 客户端缓存一年
 		MaxAge: 365 * 24 * time.Hour,
 		// 缓存服务器缓存一个小时
 		SMaxAge:             time.Hour,
 		DenyQueryString:     true,
 		DisableLastModified: true,
+		EnableStrongETag:    true,
+		// 如果静态文件都有版本号，可以指定immutable
+		Immutable: true,
 	}))
 }
 
-func sendFile(c *elton.Context, file string) (err error) {
-	buf, err := box.Find(file)
+// getIndex 首页
+func (*assetCtrl) getIndex(c *elton.Context) error {
+	err := assetFS.SendFile(c, "index.html")
 	if err != nil {
-		return
+		return err
 	}
-	// 根据文件后续设置类型
-	c.SetContentTypeByExt(file)
-	c.BodyBuffer = bytes.NewBuffer(buf)
-	return
-}
-
-func (ctrl assetCtrl) index(c *elton.Context) (err error) {
 	c.CacheMaxAge(10 * time.Second)
-	return sendFile(c, "index.html")
+	return nil
 }
 
-func (ctrl assetCtrl) favIcon(c *elton.Context) (err error) {
+// getFavIcon 图标
+func (*assetCtrl) getFavIcon(c *elton.Context) error {
+	err := assetFS.SendFile(c, "favicon.png")
+	if err != nil {
+		return err
+	}
 	c.CacheMaxAge(time.Hour, 10*time.Minute)
-	return sendFile(c, "favicon.ico")
+	return nil
 }

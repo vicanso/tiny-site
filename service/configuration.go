@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,161 +15,154 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/vicanso/elton"
 	"github.com/vicanso/tiny-site/config"
-	"github.com/vicanso/tiny-site/cs"
+	"github.com/vicanso/tiny-site/email"
+	"github.com/vicanso/tiny-site/ent"
+	"github.com/vicanso/tiny-site/ent/configuration"
+	"github.com/vicanso/tiny-site/helper"
+	"github.com/vicanso/tiny-site/interceptor"
+	"github.com/vicanso/tiny-site/log"
+	"github.com/vicanso/tiny-site/request"
+	routerconcurrency "github.com/vicanso/tiny-site/router_concurrency"
+	routermock "github.com/vicanso/tiny-site/router_mock"
+	"github.com/vicanso/tiny-site/schema"
 	"github.com/vicanso/tiny-site/util"
+	"go.uber.org/atomic"
 )
 
-const (
-	mockTimeKey              = "mockTime"
-	sessionSignedKeyCateogry = "signedKey"
-	ipBlockCategory          = "ipBlock"
-	routerConfigCategory     = "routerConfig"
+// ConfigurationSrv 配置的相关函数
+type ConfigurationSrv struct{}
 
-	defaultConfigurationLimit = 100
+// 配置数据
+type (
+
+	// CurrentValidConfiguration 当前有效配置
+	CurrentValidConfiguration struct {
+		UpdatedAt         time.Time                        `json:"updatedAt"`
+		MockTime          string                           `json:"mockTime"`
+		IPBlockList       []string                         `json:"ipBlockList"`
+		SignedKeys        []string                         `json:"signedKeys"`
+		RouterConcurrency map[string]uint32                `json:"routerConcurrency"`
+		RouterMock        map[string]routermock.RouterMock `json:"routerMock"`
+		Limits            map[string]int                   `json:"limits"`
+	}
+	// RequestLimitConfiguration HTTP请求实例并发限制
+	RequestLimitConfiguration struct {
+		Name string `json:"name"`
+		Max  int    `json:"max"`
+	}
 )
 
 var (
-	signedKeys = new(elton.AtomicSignedKeys)
+	sessionSignedKeys = new(elton.RWMutexSignedKeys)
+
+	// 当前请求实例限制
+	currentLimits = atomic.Value{}
 )
 
-type (
-	// Configuration configuration of application
-	Configuration struct {
-		ID        uint       `gorm:"primary_key" json:"id,omitempty"`
-		CreatedAt time.Time  `json:"createdAt,omitempty"`
-		UpdatedAt time.Time  `json:"updatedAt,omitempty"`
-		DeletedAt *time.Time `sql:"index" json:"deletedAt,omitempty"`
-
-		// 配置名称，唯一
-		Name string `json:"name,omitempty" gorm:"type:varchar(30);not null;unique;"`
-		// 配置分类
-		Category string `json:"category,omitempty" gorm:"type:varchar(20);"`
-		// 配置由谁创建
-		Owner string `json:"owner,omitempty" gorm:"type:varchar(20);not null;"`
-		// 配置状态
-		Status int    `json:"status,omitempty"`
-		Data   string `json:"data,omitempty"`
-		// 启用开始时间
-		BeginDate *time.Time `json:"beginDate,omitempty"`
-		// 启用结束时间
-		EndDate *time.Time `json:"endDate,omitempty"`
-	}
-	// ConfigurationQueryParmas configuration query params
-	ConfigurationQueryParmas struct {
-		Name     string
-		Category string
-		Limit    int
-	}
-	// ConfigurationSrv configuration service
-	ConfigurationSrv struct {
-	}
-)
+// 配置刷新时间
+var configurationRefreshedAt time.Time
+var sessionConfig = config.MustGetSessionConfig()
 
 func init() {
-	pgGetClient().AutoMigrate(&Configuration{})
-	signedKeys.SetKeys(config.GetSignedKeys())
+	// session中用于cookie的signed keys
+	sessionSignedKeys.SetKeys(sessionConfig.Keys)
 }
 
-// IsValid check the config is valid
-func (conf *Configuration) IsValid() bool {
-	if conf.Status != cs.ConfigEnabled {
-		return false
+// GetSignedKeys 获取用于cookie加密的key列表
+func GetSignedKeys() elton.SignedKeysGenerator {
+	return sessionSignedKeys
+}
+
+// GetCurrentValidConfiguration 获取当前有效配置
+func GetCurrentValidConfiguration() *CurrentValidConfiguration {
+	result := &CurrentValidConfiguration{
+		UpdatedAt:         configurationRefreshedAt,
+		MockTime:          util.GetMockTime(),
+		IPBlockList:       GetIPBlockList(),
+		SignedKeys:        sessionSignedKeys.GetKeys(),
+		RouterConcurrency: routerconcurrency.List(),
+		RouterMock:        routermock.List(),
 	}
-	now := util.Now().Unix()
-	// 如果开始时间大于当前时间，未开始启用
-	if conf.BeginDate != nil && conf.BeginDate.UTC().Unix() > now {
-		return false
+	value := currentLimits.Load()
+	if value != nil {
+		limits, _ := value.(map[string]int)
+		result.Limits = limits
 	}
-	// 如果结束时间少于当前时间，已结束
-	if conf.EndDate != nil && conf.EndDate.UTC().Unix() < now {
-		return false
-	}
-	return true
+	return result
 }
 
-// Add add configuration
-func (srv *ConfigurationSrv) Add(conf *Configuration) (err error) {
-	err = pgCreate(conf)
-	return
+// available 获取可用的配置
+func (*ConfigurationSrv) available() ([]*ent.Configuration, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	now := time.Now()
+	return helper.EntGetClient().Configuration.Query().
+		Where(configuration.Status(schema.StatusEnabled)).
+		Where(configuration.StartedAtLT(now)).
+		Where(configuration.EndedAtGT(now)).
+		Order(ent.Desc(configuration.FieldUpdatedAt)).
+		All(ctx)
 }
 
-// Update update configuration
-func (srv *ConfigurationSrv) Update(conf *Configuration, attrs ...interface{}) (err error) {
-	err = pgGetClient().Model(conf).Update(attrs...).Error
-	return
-}
-
-// Available get available configs
-func (srv *ConfigurationSrv) Available() (configs []*Configuration, err error) {
-	result := make([]*Configuration, 0)
-	configs = make([]*Configuration, 0)
-	err = pgGetClient().Where("status = ?", cs.ConfigEnabled).Find(&result).Error
+// Refresh 刷新配置
+func (srv *ConfigurationSrv) Refresh() error {
+	configs, err := srv.available()
 	if err != nil {
-		return
+		return err
 	}
-	for _, item := range result {
-		if item.IsValid() {
-			configs = append(configs, item)
-		}
-	}
-	return
-}
-
-// Unavailable get unavailable configs
-func (srv *ConfigurationSrv) Unavailable() (configs []*Configuration, err error) {
-	result := make([]*Configuration, 0)
-	configs = make([]*Configuration, 0)
-	err = pgGetClient().Model(&Configuration{}).Find(&result).Error
-	if err != nil {
-		return
-	}
-	for _, item := range result {
-		if !item.IsValid() {
-			configs = append(configs, item)
-		}
-	}
-	return
-}
-
-// Refresh refresh configurations
-func (srv *ConfigurationSrv) Refresh() (err error) {
-	configs, err := srv.Available()
-	if err != nil {
-		return
-	}
-	var mockTimeConfig *Configuration
-
-	routerConfigs := make([]*Configuration, 0)
-	var signedKeysConfig *Configuration
+	configurationRefreshedAt = time.Now()
+	var mockTimeConfig *ent.Configuration
+	routerConcurrencyConfigs := make([]string, 0)
+	routerConfigs := make([]string, 0)
+	var signedKeys []string
 	blockIPList := make([]string, 0)
 
+	mailList := make(map[string]string)
+
+	httpInterceptors := make([]string, 0)
+
+	requestLimitConfigs := make(map[string]int)
 	for _, item := range configs {
-		if item.Name == mockTimeKey {
-			mockTimeConfig = item
-			continue
-		}
-
-		// 路由配置
-		if item.Category == routerConfigCategory {
-			routerConfigs = append(routerConfigs, item)
-			continue
-		}
-
-		// signed key配置
-		if item.Category == sessionSignedKeyCateogry {
-			signedKeysConfig = item
-			continue
-		}
-
-		// 黑名单IP
-		if item.Category == ipBlockCategory {
+		switch item.Category {
+		case schema.ConfigurationCategoryMockTime:
+			// 由于排序是按更新时间，因此取最新的记录
+			if mockTimeConfig == nil {
+				mockTimeConfig = item
+			}
+		case schema.ConfigurationCategoryBlockIP:
 			blockIPList = append(blockIPList, item.Data)
-			continue
+		case schema.ConfigurationCategorySignedKey:
+			// 按更新时间排序，因此如果已获取则不需要再更新
+			if len(signedKeys) == 0 {
+				signedKeys = strings.Split(item.Data, ",")
+			}
+		case schema.ConfigurationCategoryRouterConcurrency:
+			routerConcurrencyConfigs = append(routerConcurrencyConfigs, item.Data)
+		case schema.ConfigurationCategoryRouter:
+			routerConfigs = append(routerConfigs, item.Data)
+		case schema.ConfigurationCategoryRequestConcurrency:
+			c := RequestLimitConfiguration{}
+			err := json.Unmarshal([]byte(item.Data), &c)
+			if err != nil {
+				log.Error(context.Background()).
+					Err(err).
+					Msg("request limit config is invalid")
+				email.AlarmError(context.Background(), "request limit config is invalid:"+err.Error())
+			}
+			if c.Name != "" {
+				requestLimitConfigs[c.Name] = c.Max
+			}
+		case schema.ConfigurationCategoryEmail:
+			mailList[item.Name] = item.Data
+		case schema.ConfigurationHTTPServerInterceptor:
+			httpInterceptors = append(httpInterceptors, item.Data)
 		}
 	}
 
@@ -181,61 +174,34 @@ func (srv *ConfigurationSrv) Refresh() (err error) {
 	}
 
 	// 如果数据库中未配置，则使用默认配置
-	if signedKeysConfig == nil {
-		signedKeys.SetKeys(config.GetSignedKeys())
+	if len(signedKeys) == 0 {
+		sessionSignedKeys.SetKeys(sessionConfig.Keys)
 	} else {
-		keys := strings.Split(signedKeysConfig.Data, ",")
-		signedKeys.SetKeys(keys)
+		sessionSignedKeys.SetKeys(signedKeys)
 	}
 
 	// 更新router configs
-	updateRouterConfigs(routerConfigs)
+	routermock.Update(routerConfigs)
 
-	ResetIPBlocker(blockIPList)
-	return
-}
-
-// GetSignedKeys get signed keys
-func GetSignedKeys() elton.SignedKeysGenerator {
-	return signedKeys
-}
-
-// List list configurations
-func (srv *ConfigurationSrv) List(params ConfigurationQueryParmas) (result []*Configuration, err error) {
-	result = make([]*Configuration, 0)
-	db := pgGetClient()
-
-	if params.Limit <= 0 {
-		db = db.Limit(defaultConfigurationLimit)
-	} else {
-		db = db.Limit(params.Limit)
+	// 重置IP拦截列表
+	err = ResetIPBlocker(blockIPList)
+	if err != nil {
+		log.Error(context.Background()).
+			Err(err).
+			Msg("reset ip blocker fail")
 	}
 
-	if params.Name != "" {
-		names := strings.Split(params.Name, ",")
-		if len(names) > 1 {
-			db = db.Where("name in (?)", names)
-		} else {
-			db = db.Where("name = (?)", names[0])
-		}
-	}
+	// 重置路由并发限制
+	routerconcurrency.Update(routerConcurrencyConfigs)
 
-	if params.Category != "" {
-		categories := strings.Split(params.Category, ",")
-		if len(categories) > 1 {
-			db = db.Where("category in (?)", categories)
-		} else {
-			db = db.Where("category = ?", categories[0])
-		}
-	}
-	err = db.Find(&result).Error
-	return
-}
+	// 更新HTTP请求实例并发限制
+	currentLimits.Store(requestLimitConfigs)
+	request.UpdateConcurrencyLimit(requestLimitConfigs)
 
-// DeleteByID delete configuration
-func (srv *ConfigurationSrv) DeleteByID(id uint) (err error) {
-	err = pgGetClient().Unscoped().Delete(&Configuration{
-		ID: id,
-	}).Error
-	return
+	email.Update(mailList)
+
+	// 更新拦截配置
+	interceptor.UpdateHTTPInterceptors(httpInterceptors)
+
+	return nil
 }

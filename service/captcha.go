@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package service
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -26,34 +28,37 @@ import (
 
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
-	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/util"
+	"github.com/vicanso/hes"
 	"golang.org/x/image/font/gofont/goregular"
 )
 
 const (
-	captchaKeyPrefix = "captcha-"
+	captchaKeyPrefix = "captcha:"
+
+	errCaptchaCategory = "captcha"
 )
 
 type (
-	// CaptchaInfo captcha info
+	// CaptchaInfo 图形验证码
 	CaptchaInfo struct {
-		Data []byte `json:"data,omitempty"`
+		ExpiredAt time.Time `json:"expiredAt"`
+		Data      []byte    `json:"data"`
 		// json输出时，忽略此字段
 		Value string `json:"-"`
-		ID    string `json:"id,omitempty"`
-		Type  string `json:"type,omitempty"`
+		ID    string `json:"id"`
+		Type  string `json:"type"`
 	}
 )
 
-// createCaptcha create captcha image
-func createCaptcha(fontColor, bgColor color.Color, width, height int, text string) (img image.Image, err error) {
+// createCaptcha 创建图形验证码
+func createCaptcha(fontColor, bgColor color.Color, width, height int, text string) (image.Image, error) {
 	font, err := truetype.Parse(goregular.TTF)
 	if err != nil {
-		return
+		return nil, err
 	}
-	// dc := gg.NewContextForImage(img)
 	dc := gg.NewContext(width, height)
+	// 设置背景色
 	dc.SetColor(bgColor)
 	dc.Clear()
 	fontCount := len(text)
@@ -61,11 +66,15 @@ func createCaptcha(fontColor, bgColor color.Color, width, height int, text strin
 	eachFontWidth := (width - 2*offset) / fontCount
 	fontSize := float64(eachFontWidth) * 1.8
 	dc.SetColor(fontColor)
+	// 对字符串一个个的填入图片中
 	for index, ch := range text {
+		// 随机+ -字体大小
 		newFontSize := float64(rand.Int63n(40)+80) / 100 * fontSize
 		face := truetype.NewFace(font, &truetype.Options{Size: newFontSize})
 		dc.SetFontFace(face)
+		// 随机偏移角度
 		angle := float64(rand.Int63n(20))/100 - 0.1
+		// 随机偏移位置
 		offsetX := float64(eachFontWidth + index*eachFontWidth + int(rand.Int63n(10)) - 10)
 		offsetY := float64(height) + float64(rand.Int63n(10)) - float64(15)
 		if offsetY > float64(height) || offsetX < float64(height)-newFontSize {
@@ -73,11 +82,11 @@ func createCaptcha(fontColor, bgColor color.Color, width, height int, text strin
 		}
 		dc.Rotate(angle)
 		dc.DrawString(string(ch), offsetX, offsetY)
-
 	}
 	dc.SetStrokeStyle(gg.NewSolidPattern(fontColor))
 	dc.SetLineWidth(1.5)
-	for index := 0; index < 8; index++ {
+	// 画线（用于影响机器识别）
+	for index := 0; index < 3; index++ {
 		x1 := float64(rand.Int31n(int32(width / 2)))
 		y1 := float64(rand.Int31n(int32(height)))
 
@@ -86,26 +95,24 @@ func createCaptcha(fontColor, bgColor color.Color, width, height int, text strin
 		dc.DrawLine(x1, y1, x2, y2)
 		dc.Stroke()
 	}
-	img = dc.Image()
-	return
+	return dc.Image(), nil
 }
 
-func parseColor(s string) (c color.RGBA, err error) {
+// parseColor 转换颜色
+func parseColor(s string) (*color.RGBA, error) {
 	arr := strings.Split(s, ",")
 	if len(arr) != 3 {
-		err = hes.New("color is invalid")
-		return
+		return nil, hes.New(fmt.Sprintf("非法颜色值，格式必须为：1,1,1，当前为：%s", s), errCaptchaCategory)
 	}
+	c := &color.RGBA{}
 	c.A = 0xff
 	for index, v := range arr {
-		value, e := strconv.Atoi(v)
+		value, e := strconv.Atoi(strings.TrimSpace(v))
 		if e != nil {
-			err = hes.Wrap(e)
-			return
+			return nil, hes.Wrap(e)
 		}
 		if value > 255 || value < 0 {
-			err = hes.New("color value is invalid")
-			return
+			return nil, hes.New(fmt.Sprintf("非法颜色值，必须>=0 <=255，当前为：%d", value), errCaptchaCategory)
 		}
 		switch index {
 		case 0:
@@ -116,54 +123,50 @@ func parseColor(s string) (c color.RGBA, err error) {
 			c.B = uint8(value)
 		}
 	}
-	return
+	return c, nil
 }
 
-// GetCaptcha get captcha
-func GetCaptcha(fontColor, bgColor string) (info *CaptchaInfo, err error) {
+// GetCaptcha 获取图形验证码
+func GetCaptcha(ctx context.Context, fontColor, bgColor string) (*CaptchaInfo, error) {
 	value := util.RandomDigit(4)
 	fc, err := parseColor(fontColor)
 	if err != nil {
-		return
+		return nil, err
 	}
 	bc, err := parseColor(bgColor)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	img, err := createCaptcha(fc, bc, 80, 40, value)
 	if err != nil {
-		return
+		return nil, err
 	}
 	buffer := new(bytes.Buffer)
 	err = jpeg.Encode(buffer, img, nil)
 	if err != nil {
-		return
+		return nil, err
 	}
-	id := util.GenUlid()
-	err = redisSrv.Set(captchaKeyPrefix+id, value, 2*time.Minute)
+	id := util.GenXID()
+	ttl := 5 * time.Minute
+	err = redisSrv.Set(ctx, captchaKeyPrefix+id, value, ttl+time.Minute)
 	if err != nil {
-		return
+		return nil, err
 	}
-	info = &CaptchaInfo{
-		Data:  buffer.Bytes(),
-		Value: value,
-		ID:    id,
-		Type:  "jpeg",
-	}
-	return
+	return &CaptchaInfo{
+		ExpiredAt: time.Now().Add(ttl),
+		Data:      buffer.Bytes(),
+		Value:     value,
+		ID:        id,
+		Type:      "jpeg",
+	}, nil
 }
 
-// ValidateCaptcha validate the captch
-func ValidateCaptcha(id, value string) (valid bool, err error) {
-	// 开发环境允许万能验证码
-	if util.IsDevelopment() && value == "1053" {
-		return true, nil
-	}
-	data, err := redisSrv.GetAndDel(captchaKeyPrefix + id)
+// ValidateCaptcha 校验图形验证码是否正确
+func ValidateCaptcha(ctx context.Context, id, value string) (bool, error) {
+	data, err := redisSrv.GetAndDel(ctx, captchaKeyPrefix+id)
 	if err != nil {
-		return
+		return false, err
 	}
-	valid = data == value
-	return
+	return string(data) == value, nil
 }

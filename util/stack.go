@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ func getStack(length int, ignoreMod bool) []string {
 		if index+1 >= max {
 			break
 		}
+		// 如果是mod的或者非当前应用下的代码，则忽略
 		if ignoreMod && !strings.Contains(arr[index+1], appPath) {
 			continue
 		}

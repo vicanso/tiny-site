@@ -31,7 +31,7 @@ func NewGroup(path string, handlerList ...elton.Handler) *elton.Group {
 	return g
 }
 
-// GetGroups get group list
+// GetGroups get all groups
 func GetGroups() []*elton.Group {
 	return groupList
 }

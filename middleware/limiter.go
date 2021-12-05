@@ -15,21 +15,15 @@
 package middleware
 
 import (
-	"net/http"
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/vicanso/elton"
 	"github.com/vicanso/elton/middleware"
-	"github.com/vicanso/hes"
+	"github.com/vicanso/tiny-site/cache"
 	"github.com/vicanso/tiny-site/log"
-	"github.com/vicanso/tiny-site/service"
-	"go.uber.org/zap"
-)
-
-type (
-	// KeyGenerator key generator
-	KeyGenerator func(c *elton.Context) string
+	"github.com/vicanso/hes"
 )
 
 const (
@@ -39,37 +33,38 @@ const (
 	errLimitCategory         = "requestLimit"
 )
 
-var (
-	errTooFrequently = &hes.Error{
-		StatusCode: http.StatusBadRequest,
-		Message:    "请求过于频繁，请稍候再试！",
-		Category:   errLimitCategory,
-	}
-	redisSrv = new(service.RedisSrv)
+var redisSrv = cache.GetRedisCache()
 
-	logger = log.Default()
+type (
+	// KeyGenerator key generator
+	KeyGenerator func(c *elton.Context) string
 )
 
 // createConcurrentLimitLock 创建并发限制的lock函数
 func createConcurrentLimitLock(prefix string, ttl time.Duration, withDone bool) middleware.ConcurrentLimiterLock {
-	return func(key string, _ *elton.Context) (success bool, done func(), err error) {
+	return func(key string, c *elton.Context) (bool, func(), error) {
+		ctx := c.Context()
 		k := concurrentLimitKeyPrefix + "-" + prefix + "-" + key
-		done = nil
+		var done func()
 		if withDone {
-			success, redisDone, err := redisSrv.LockWithDone(k, ttl)
+			success, redisDone, err := redisSrv.LockWithDone(ctx, k, ttl)
 			done = func() {
 				err := redisDone()
 				if err != nil {
-					logger.Error("redis done fail",
-						zap.String("key", k),
-						zap.Error(err),
-					)
+					log.Error(ctx).
+						Str("category", "redisDelFail").
+						Str("key", k).
+						Err(err).
+						Msg("")
 				}
 			}
 			return success, done, err
 		}
-		success, err = redisSrv.Lock(k, ttl)
-		return
+		success, err := redisSrv.Lock(ctx, k, ttl)
+		if err != nil {
+			return false, done, err
+		}
+		return success, done, nil
 	}
 }
 
@@ -82,7 +77,7 @@ func NewConcurrentLimit(keys []string, ttl time.Duration, prefix string) elton.H
 	})
 }
 
-// NewConcurrentLimitWithDone 创建并发限制中间件，且带done函数
+// NewConcurrentLimitWithDone 创建并发限制中间件，完成时则执行done清除
 func NewConcurrentLimitWithDone(keys []string, ttl time.Duration, prefix string) elton.Handler {
 	return middleware.NewConcurrentLimiter(middleware.ConcurrentLimiterConfig{
 		NotAllowEmpty: true,
@@ -93,15 +88,15 @@ func NewConcurrentLimitWithDone(keys []string, ttl time.Duration, prefix string)
 
 // NewIPLimit 创建IP限制中间件
 func NewIPLimit(maxCount int64, ttl time.Duration, prefix string) elton.Handler {
-	return func(c *elton.Context) (err error) {
+	return func(c *elton.Context) error {
+		ctx := c.Context()
 		key := ipLimitKeyPrefix + "-" + prefix + "-" + c.RealIP()
-		count, err := redisSrv.IncWithTTL(key, ttl)
+		count, err := redisSrv.IncWith(ctx, key, 1, ttl)
 		if err != nil {
-			return
+			return err
 		}
 		if count > maxCount {
-			err = errTooFrequently
-			return
+			return hes.New(fmt.Sprintf("请求过于频繁，请稍候再试！(%d/%d)", count, maxCount), errLimitCategory)
 		}
 		return c.Next()
 	}
@@ -109,23 +104,23 @@ func NewIPLimit(maxCount int64, ttl time.Duration, prefix string) elton.Handler 
 
 // NewErrorLimit 创建出错限制中间件
 func NewErrorLimit(maxCount int64, ttl time.Duration, fn KeyGenerator) elton.Handler {
-	return func(c *elton.Context) (err error) {
+	return func(c *elton.Context) error {
+		ctx := c.Context()
 		key := errorLimitKeyPrefix + "-" + fn(c)
-		result, err := redisSrv.GetIgnoreNilErr(key)
+		result, err := redisSrv.GetIgnoreNilErr(ctx, key)
 		if err != nil {
-			return
+			return err
 		}
-		count, _ := strconv.Atoi(result)
+		count, _ := strconv.Atoi(string(result))
 		// 因为count是处理完才inc，因此增加等于的判断
 		if int64(count) >= maxCount {
-			err = errTooFrequently
-			return
+			return hes.New(fmt.Sprintf("请求过于频繁，请稍候再试！(%d/%d)", count, maxCount), errLimitCategory)
 		}
 		err = c.Next()
 		// 如果出错，则出错次数+1
 		if err != nil {
-			_, _ = redisSrv.IncWithTTL(key, ttl)
+			_, _ = redisSrv.IncWith(ctx, key, 1, ttl)
 		}
-		return
+		return err
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 package cs
 
 const (
@@ -22,20 +21,19 @@ const (
 	// ActionLogout logout
 	ActionLogout = "logout"
 
+	// ActionUserInfoUpdate update user info
+	ActionUserInfoUpdate = "updateUserInfo"
+	// ActionUserMeUpdate update my info
+	ActionUserMeUpdate = "updateUserMe"
+
 	// ActionConfigurationAdd add configuration
-	ActionConfigurationAdd = "add-configuration"
+	ActionConfigurationAdd = "addConfiguration"
 	// ActionConfigurationUpdate update configuration
-	ActionConfigurationUpdate = "update-configuration"
-	// ActionConfigurationDelete delete configuration
-	ActionConfigurationDelete = "delete-configuration"
+	ActionConfigurationUpdate = "updateConfiguration"
 
-	// ActionFileAdd add file
-	ActionFileAdd = "add-file"
-	// ActionFileInnerAdd inner add file
-	ActionFileInnerAdd = "inner-add-file"
-	// ActionFileUpdate update file
-	ActionFileUpdate = "update-file"
+	// ActionAdminCleanCache clean cache
+	ActionAdminCleanCache = "cleanCache"
 
-	// ActionFileZoneUpdate update file zone
-	ActionFileZoneUpdate = "update-file-zone"
+	// ActionBucketCreate create bucket
+	ActionBucketCreate = "createBucket"
 )

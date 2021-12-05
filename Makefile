@@ -1,25 +1,44 @@
-export GO111MODULE = on
-
-.PHONY: default test test-cover dev
+.PHONY: default test test-cover dev generate hooks lint-web doc
 
 # for dev
 dev:
-	fresh
+	air -c .air.toml	
+dev-debug:
+	LOG_LEVEL=0 make dev
+doc:
+	CGO_ENABLED=0 swagger generate spec -t swagger -o ./asset/api.yml && swagger validate ./asset/api.yml 
 
-test: export GO_ENV=test
 test:
-	go test -cover ./...
+	go test -race -cover ./...
 
-test-cover: export GO_ENV=test
+install:
+	go get -d entgo.io/ent/cmd/entc
+
+generate: 
+	rm -rf ./ent
+	go run entgo.io/ent/cmd/ent generate ./schema --template ./template --target ./ent
+
+describe:
+	entc describe ./schema
+
 test-cover:
 	go test -race -coverprofile=test.out ./... && go tool cover --html=test.out
 
 list-mod:
 	go list -m -u all
 
-build:
-	packr2
-	go build -o tiny-site 
+tidy:
+	go mod tidy
 
-clean:
-	packr2 clean
+build:
+	go build -ldflags "-X main.Version=0.0.1 -X 'main.BuildedAt=`date`'" -o tiny-site 
+
+
+lint:
+	golangci-lint run
+
+lint-web:
+	cd web && yarn lint 
+
+hooks:
+	cp hooks/* .git/hooks/

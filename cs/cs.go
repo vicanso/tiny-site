@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,21 +14,26 @@
 
 package cs
 
+import "regexp"
+
 const (
 	// CID context id
 	CID = "cid"
 	// UserSession user session
 	UserSession = "userSession"
-
-	// UserRoleSu super user
-	UserRoleSu = "su"
-	// UserRoleAdmin admin user
-	UserRoleAdmin = "admin"
 )
 
 const (
-	// ConfigEnabled 启用状态
-	ConfigEnabled = iota + 1
-	// ConfigDiabled 禁用状态
-	ConfigDiabled
+	// MagicalCaptcha magical captcha(for test only)
+	MagicalCaptcha = "0145"
 )
+
+const (
+	// ResultSuccess result success
+	ResultSuccess = iota
+	// ResultFail result fail
+	ResultFail
+)
+
+// ***处理
+var MaskRegExp = regexp.MustCompile(`(?i)password`)

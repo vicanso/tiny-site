@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,37 +15,22 @@
 package service
 
 import (
-	"sync/atomic"
-	"unsafe"
-
 	"github.com/vicanso/ips"
 )
 
-var (
-	ipBlocker = &IPBlocker{
-		IPS: ips.New(),
-	}
-)
+var blockIPS = ips.New()
 
-type (
-	// IPBlocker ip blocker
-	IPBlocker struct {
-		IPS *ips.IPS
-	}
-)
-
-// ResetIPBlocker reset the ip blocker
-func ResetIPBlocker(ipList []string) {
-	iPS := ips.New()
-	for _, value := range ipList {
-		iPS.Add(value)
-	}
-	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&ipBlocker.IPS)), unsafe.Pointer(iPS))
+// ResetIPBlocker 重置IP拦截器的IP列表
+func ResetIPBlocker(ipList []string) error {
+	return blockIPS.Replace(ipList...)
 }
 
-// IsBlockIP check the ip is blocked
+// IsBlockIP 判断该IP是否有需要拦截
 func IsBlockIP(ip string) bool {
-	iPS := (*ips.IPS)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&ipBlocker.IPS))))
-	blocked := iPS.Contains(ip)
-	return blocked
+	return blockIPS.Contains(ip)
+}
+
+// GetIPBlockList 获取block的ip地址列表
+func GetIPBlockList() []string {
+	return blockIPS.Strings()
 }

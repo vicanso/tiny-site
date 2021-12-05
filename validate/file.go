@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,51 +14,9 @@
 
 package validate
 
-import (
-	"strings"
-
-	"github.com/asaskevich/govalidator"
-)
-
 func init() {
-	Add("xFileZoneName", func(i interface{}, _ interface{}) bool {
-		return checkStringLength(i, 4, 20)
-	})
-
-	Add("xFileZone", func(i interface{}, _ interface{}) bool {
-		value := govalidator.ToString(i)
-		return govalidator.Range(value, "1", "1000")
-	})
-
-	Add("xFileZoneAuthority", func(i interface{}, _ interface{}) bool {
-		value := govalidator.ToString(i)
-		return govalidator.IsIn(value, "1", "2")
-	})
-	Add("xFileZoneDesc", func(i interface{}, _ interface{}) bool {
-		return checkStringLength(i, 1, 100)
-	})
-
-	Add("xFileName", func(i interface{}, _ interface{}) bool {
-		valid := checkStringLength(i, 4, 26)
-		if !valid {
-			return false
-		}
-		value, _ := i.(string)
-		// 文件名不允许存在 -
-		if strings.Contains(value, "-") {
-			return false
-		}
-		return true
-	})
-
-	Add("xFileKeyword", func(i interface{}, _ interface{}) bool {
-		return checkStringLength(i, 1, 100)
-	})
-
-	Add("xFileType", func(i interface{}, _ interface{}) bool {
-		return checkASCIIStringLength(i, 1, 5)
-	})
-	Add("xFileDesc", func(i interface{}, _ interface{}) bool {
-		return checkStringLength(i, 1, 100)
-	})
+	buckets := []string{
+		"files",
+	}
+	Add("xFileBucket", newIsInString(buckets))
 }
