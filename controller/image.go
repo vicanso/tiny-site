@@ -21,13 +21,13 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/disintegration/imaging"
 	"github.com/vicanso/elton"
 	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/ent"
 	"github.com/vicanso/tiny-site/ent/bucket"
 	entImage "github.com/vicanso/tiny-site/ent/image"
+	"github.com/vicanso/tiny-site/pipeline"
 	"github.com/vicanso/tiny-site/router"
 	"github.com/vicanso/tiny-site/util"
 	"github.com/vicanso/tiny-site/validate"
@@ -317,35 +317,17 @@ func (*imageCtrl) getImageThumbnail(c *elton.Context) error {
 	if err != nil {
 		return err
 	}
-	result, err := getImageClient().Query().
-		Where(entImage.Bucket(params.Bucket)).
-		Where(entImage.Name(params.Name)).
-		First(c.Context())
+	jobs := []pipeline.ImageJob{
+		pipeline.NewGetEntImage(params.Bucket, params.Name),
+		pipeline.NewFitResizeImage(params.ThumbnailSize, params.ThumbnailSize),
+	}
+	img, err := pipeline.Do(c.Context(), nil, jobs...)
 	if err != nil {
 		return err
 	}
-	data := result.Data
-	if result.Width > params.ThumbnailSize ||
-		result.Height > params.ThumbnailSize {
-		img, _, err := image.Decode(bytes.NewReader(data))
-		if err != nil {
-			return err
-		}
-		img = imaging.Fit(img, params.ThumbnailSize, params.ThumbnailSize, imaging.Lanczos)
-		buffer := bytes.Buffer{}
-		format := imaging.JPEG
-		if result.Type == "png" {
-			format = imaging.PNG
-		}
-		err = imaging.Encode(&buffer, img, format)
-		if err != nil {
-			return err
-		}
-		data = buffer.Bytes()
-	}
 	c.CacheMaxAge(time.Minute)
-	c.SetContentTypeByExt("." + result.Type)
-	c.BodyBuffer = bytes.NewBuffer(data)
+	c.SetContentTypeByExt("." + img.Type)
+	c.BodyBuffer = bytes.NewBuffer(img.Data)
 
 	return nil
 }
