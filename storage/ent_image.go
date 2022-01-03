@@ -66,7 +66,7 @@ func (e *entStorage) update(ctx context.Context, data ent.Image) error {
 	size := len(data.Data)
 	if size != 0 {
 		updateOne.SetData(data.Data)
-		updateOne.SetSize(int64(size))
+		updateOne.SetSize(size)
 	}
 	_, err := updateOne.Save(ctx)
 	return err
@@ -82,7 +82,7 @@ func (e *entStorage) Put(ctx context.Context, data ent.Image) error {
 		SetBucket(data.Bucket).
 		SetName(data.Name).
 		SetType(data.Type).
-		SetSize(int64(len(data.Data))).
+		SetSize(len(data.Data)).
 		SetWidth(data.Width).
 		SetHeight(data.Height).
 		SetMetadata(data.Metadata).

@@ -15,50 +15,299 @@
 package controller
 
 import (
+	"bytes"
+	"context"
+	"image"
+	"io/ioutil"
+
 	"github.com/vicanso/elton"
+	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/cs"
+	"github.com/vicanso/tiny-site/ent"
+	"github.com/vicanso/tiny-site/ent/bucket"
+	entImage "github.com/vicanso/tiny-site/ent/image"
 	"github.com/vicanso/tiny-site/router"
+	"github.com/vicanso/tiny-site/util"
+	"github.com/vicanso/tiny-site/validate"
 )
 
 type imageCtrl struct{}
 
 type (
-	addBucketParams struct {
+	bucketAddParams struct {
 		// bucket的名称
-		Name string `json:"name"`
+		Name string `json:"name" validate:"required,xImageBucket"`
 		// 拥有者
-		Owners []string `json:"owners"`
+		Owners []string `json:"owners" validate:"omitempty,dive,xUserAccount"`
 		// 描述
-		Description string `json:"description"`
+		Description string `json:"description" validate:"required,xImageDescription"`
+	}
+	bucketListParams struct {
+		listParams
+	}
+	imageAddParams struct {
+		Bucket string `json:"bucket" validate:"required,xImageBucket"`
+		Name   string `json:"name" validate:"omitempty,xImageName"`
+		Tags   string `json:"tags" validate:"omitempty,xImageTags"`
+
+		creator string
+		data    []byte
+	}
+	imageListParams struct {
+		listParams
+
+		Bucket string `json:"bucket" validate:"required,xImageBucket"`
+		Tag    string `json:"tag" validate:"omitempty,xImageTag"`
+	}
+	imageGetThumbnailParams struct {
+		Bucket string `json:"bucket" validate:"required,xImageBucket"`
+		Name   string `json:"name" validate:"omitempty,xImageName"`
+	}
+)
+
+type (
+	bucketListResp struct {
+		Count   int           `json:"count"`
+		Buckets []*ent.Bucket `json:"buckets"`
+	}
+	imageListResp struct {
+		Count  int          `json:"count"`
+		Images []*ent.Image `json:"images"`
 	}
 )
 
 func init() {
-	g := router.NewGroup("/images", loadUserSession)
+	prefix := "/images"
+	g := router.NewGroup(prefix, loadUserSession, shouldBeLogin)
 	ctrl := imageCtrl{}
+
+	g.GET(
+		"/v1/buckets",
+		ctrl.listBucket,
+	)
 
 	g.POST(
 		"/v1/buckets",
-		shouldBeLogin,
-		newTrackerMiddleware(cs.ActionBucketCreate),
-		ctrl.createBucket,
+		newTrackerMiddleware(cs.ActionBucketAdd),
+		ctrl.addBucket,
+	)
+
+	g.POST(
+		"/v1",
+		newTrackerMiddleware(cs.ActionImageAdd),
+		ctrl.addImage,
+	)
+
+	g.GET(
+		"/v1",
+		ctrl.listImage,
+	)
+
+	router.NewGroup(prefix).GET(
+		"/v1/thumbnails/{bucket}/{name}",
+		ctrl.getImageThumbnail,
 	)
 }
 
-func (*imageCtrl) createBucket(c *elton.Context) error {
-	params := addBucketParams{}
+func (params *bucketListParams) queryAll(ctx context.Context) ([]*ent.Bucket, error) {
+	query := getBucketClient().Query()
+	query.Limit(params.GetLimit()).
+		Offset(params.GetOffset()).
+		Order(params.GetOrders()...)
+	return query.All(ctx)
+}
+
+func (params *bucketListParams) count(ctx context.Context) (int, error) {
+	query := getBucketClient().Query()
+
+	return query.Count(ctx)
+}
+
+func (params *imageAddParams) save(ctx context.Context) (*ent.Image, error) {
+	image, imageType, err := image.Decode(bytes.NewReader(params.data))
+	if err != nil {
+		return nil, err
+	}
+
+	return getImageClient().Create().
+		SetBucket(params.Bucket).
+		SetName(params.Name).
+		SetType(imageType).
+		SetSize(len(params.data)).
+		SetWidth(image.Bounds().Dx()).
+		SetHeight(image.Bounds().Dy()).
+		SetTags(params.Tags).
+		SetCreator(params.creator).
+		SetData(params.data).
+		Save(ctx)
+}
+
+func (params *imageListParams) where(query *ent.ImageQuery) *ent.ImageQuery {
+	if params.Bucket != "" {
+		query.Where(entImage.Bucket(params.Bucket))
+	}
+	if params.Tag != "" {
+		query.Where(entImage.TagsContains(params.Tag))
+	}
+	return query
+}
+
+func (params *imageListParams) queryAll(ctx context.Context) ([]*ent.Image, error) {
+	query := getImageClient().Query()
+	query = query.Limit(params.GetLimit()).
+		Offset(params.GetOffset()).
+		Order(params.GetOrders()...)
+	params.where(query)
+	fields := params.GetFields()
+	if len(fields) != 0 {
+		result := make([]*ent.Image, 0)
+		err := query.Select(fields...).Scan(ctx, &result)
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+
+	return query.All(ctx)
+}
+
+func (params *imageListParams) count(ctx context.Context) (int, error) {
+	query := getImageClient().Query()
+	params.where(query)
+	return query.Count(ctx)
+}
+
+func validateBucketForUser(ctx context.Context, bucketName, account string) error {
+	if bucketName == "" {
+		return hes.New("bucket名称不能为空")
+	}
+	result, err := getBucketClient().Query().
+		Where(bucket.Name(bucketName)).
+		First(ctx)
+	if err != nil {
+		return err
+	}
+	if len(result.Owners) != 0 && !util.ContainsString(result.Owners, account) {
+		return hes.New("无权限添加图片至此bucket")
+	}
+	return nil
+}
+
+func (*imageCtrl) addBucket(c *elton.Context) error {
+	params := bucketAddParams{}
 	err := validateBody(c, &params)
 	if err != nil {
 		return err
 	}
+	account := getUserSession(c).MustGetInfo().Account
 	bucket, err := getBucketClient().Create().
 		SetName(params.Name).
 		SetOwners(params.Owners).
 		SetDescription(params.Description).
+		SetCreator(account).
 		Save(c.Context())
 	if err != nil {
 		return err
 	}
 	c.Created(bucket)
+	return nil
+}
+
+func (*imageCtrl) listBucket(c *elton.Context) error {
+	params := bucketListParams{}
+	err := validateQuery(c, &params)
+	if err != nil {
+		return err
+	}
+	count := -1
+	if params.ShouldCount() {
+		count, err = params.count(c.Context())
+		if err != nil {
+			return err
+		}
+	}
+
+	buckets, err := params.queryAll(c.Context())
+	if err != nil {
+		return err
+	}
+	c.Body = &bucketListResp{
+		Count:   count,
+		Buckets: buckets,
+	}
+	return nil
+}
+
+func (*imageCtrl) addImage(c *elton.Context) error {
+	params := imageAddParams{
+		Bucket: c.Request.FormValue("bucket"),
+		Name:   c.Request.FormValue("name"),
+		Tags:   c.Request.FormValue("tags"),
+	}
+	err := validate.Struct(&params)
+	if err != nil {
+		return err
+	}
+	if params.Name == "" {
+		params.Name = util.GenXID()
+	}
+
+	account := getUserSession(c).MustGetInfo().Account
+	err = validateBucketForUser(c.Context(), params.Bucket, account)
+	if err != nil {
+		return err
+	}
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	buf, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+	params.creator = account
+	params.data = buf
+	result, err := params.save(c.Context())
+	if err != nil {
+		return err
+	}
+	c.Created(result)
+	return nil
+}
+
+func (*imageCtrl) listImage(c *elton.Context) error {
+	params := imageListParams{}
+	err := validateQuery(c, &params)
+	if err != nil {
+		return err
+	}
+
+	count := -1
+	if params.ShouldCount() {
+		count, err = params.count(c.Context())
+		if err != nil {
+			return err
+		}
+	}
+	images, err := params.queryAll(c.Context())
+	if err != nil {
+		return err
+	}
+
+	c.Body = &imageListResp{
+		Count:  count,
+		Images: images,
+	}
+	return nil
+}
+
+func (*imageCtrl) getImageThumbnail(c *elton.Context) error {
+	params := imageGetThumbnailParams{}
+	err := validate.Do(&params, c.Params.ToMap())
+	if err != nil {
+		return err
+	}
+	
 	return nil
 }

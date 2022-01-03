@@ -203,9 +203,10 @@ func GetENV() string {
 // MustGetBasicConfig 获取基本配置信息
 func MustGetBasicConfig() *BasicConfig {
 	prefix := "basic."
+	limit := defaultViperX.GetIntFromENV(prefix + "requestLimit")
 	basicConfig := &BasicConfig{
 		Name:         defaultViperX.GetString(prefix + "name"),
-		RequestLimit: defaultViperX.GetUint(prefix + "requestLimit"),
+		RequestLimit: uint(limit),
 		Listen:       defaultViperX.GetStringFromENV(prefix + "listen"),
 		Prefixes:     defaultViperX.GetStringSlice(prefix + "prefixes"),
 		Timeout:      defaultViperX.GetDurationFromENV(prefix + "timeout"),
@@ -384,8 +385,8 @@ func MustGetInfluxdbConfig() *InfluxdbConfig {
 func MustGetLocationConfig() *LocationConfig {
 	prefix := "location."
 	locationConfig := &LocationConfig{
-		BaseURL: defaultViperX.GetString(prefix + "baseURL"),
-		Timeout: defaultViperX.GetDuration(prefix + "timeout"),
+		BaseURL: defaultViperX.GetStringFromENV(prefix + "baseURL"),
+		Timeout: defaultViperX.GetDurationFromENV(prefix + "timeout"),
 	}
 	mustValidate(locationConfig)
 	return locationConfig
@@ -413,8 +414,8 @@ func MustGetMinioConfig() *MinioConfig {
 func MustGetPyroscopeConfig() *PyroscopeConfig {
 	prefix := "pyroscope."
 	pyroscopeConfig := &PyroscopeConfig{
-		Addr:  defaultViperX.GetString(prefix + "addr"),
-		Token: defaultViperX.GetString(prefix + "token"),
+		Addr:  defaultViperX.GetStringFromENV(prefix + "addr"),
+		Token: defaultViperX.GetStringFromENV(prefix + "token"),
 	}
 	return pyroscopeConfig
 }

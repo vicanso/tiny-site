@@ -27,6 +27,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/tidwall/gjson"
 	"github.com/vicanso/elton"
+	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/config"
 	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/ent"
@@ -40,7 +41,6 @@ import (
 	"github.com/vicanso/tiny-site/schema"
 	"github.com/vicanso/tiny-site/session"
 	"github.com/vicanso/tiny-site/util"
-	"github.com/vicanso/hes"
 )
 
 type userCtrl struct{}
@@ -388,17 +388,16 @@ func (params *userUpdateParams) updateByID(ctx context.Context, id int) (*ent.Us
 // where 将查询条件中的参数转换为对应的where条件
 func (params *userListParams) where(query *ent.UserQuery) *ent.UserQuery {
 	if params.Keyword != "" {
-		query = query.Where(user.AccountContains(params.Keyword))
+		query.Where(user.AccountContains(params.Keyword))
 	}
 	if params.Role != "" {
-		query = query.Where(predicate.User(func(s *sql.Selector) {
+		query.Where(predicate.User(func(s *sql.Selector) {
 			s.Where(sqljson.ValueContains(user.FieldRoles, params.Role))
 		}))
-
 	}
 	if params.Status != "" {
 		v, _ := strconv.Atoi(params.Status)
-		query = query.Where(user.Status(schema.Status(v)))
+		query.Where(user.Status(schema.Status(v)))
 	}
 	return query
 }
@@ -410,7 +409,7 @@ func (params *userListParams) queryAll(ctx context.Context) ([]*ent.User, error)
 	query = query.Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
 		Order(params.GetOrders()...)
-	query = params.where(query)
+	params.where(query)
 
 	return query.All(ctx)
 }
@@ -419,7 +418,7 @@ func (params *userListParams) queryAll(ctx context.Context) ([]*ent.User, error)
 func (params *userListParams) count(ctx context.Context) (int, error) {
 	query := getUserClient().Query()
 
-	query = params.where(query)
+	params.where(query)
 
 	return query.Count(ctx)
 }
@@ -427,13 +426,13 @@ func (params *userListParams) count(ctx context.Context) (int, error) {
 // where 登录记录的where筛选
 func (params *userLoginListParams) where(query *ent.UserLoginQuery) *ent.UserLoginQuery {
 	if params.Account != "" {
-		query = query.Where(userlogin.AccountEQ(params.Account))
+		query.Where(userlogin.AccountEQ(params.Account))
 	}
 	if !params.Begin.IsZero() {
-		query = query.Where(userlogin.CreatedAtGTE(params.Begin))
+		query.Where(userlogin.CreatedAtGTE(params.Begin))
 	}
 	if !params.End.IsZero() {
-		query = query.Where(userlogin.CreatedAtLTE(params.End))
+		query.Where(userlogin.CreatedAtLTE(params.End))
 	}
 	return query
 }
@@ -444,14 +443,14 @@ func (params *userLoginListParams) queryAll(ctx context.Context) ([]*ent.UserLog
 	query = query.Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
 		Order(params.GetOrders()...)
-	query = params.where(query)
+	params.where(query)
 	return query.All(ctx)
 }
 
 // count 计算登录记录总数
 func (params *userLoginListParams) count(ctx context.Context) (int, error) {
 	query := getUserLoginClient().Query()
-	query = params.where(query)
+	params.where(query)
 	return query.Count(ctx)
 }
 

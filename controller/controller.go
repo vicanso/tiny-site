@@ -100,6 +100,10 @@ func getBucketClient() *ent.BucketClient {
 	return helper.EntGetClient().Bucket
 }
 
+func getImageClient() *ent.ImageClient {
+	return helper.EntGetClient().Image
+}
+
 func newMagicalCaptchaValidate() elton.Handler {
 	magicValue := ""
 	if !util.IsProduction() {

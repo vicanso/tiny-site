@@ -21,11 +21,11 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/vicanso/go-gauge"
+	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/config"
 	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/log"
-	"github.com/vicanso/go-gauge"
-	"github.com/vicanso/hes"
 	"go.uber.org/atomic"
 )
 
@@ -88,6 +88,7 @@ func mustNewRedisClient() (redis.UniversalClient, *redisHook) {
 			log.Info(ctx).Msg("redis new connection is established")
 			GetInfluxDB().Write(cs.MeasurementRedisConn, nil, map[string]interface{}{
 				cs.FieldCount: 1,
+				cs.FieldAddr:  cn.String(),
 			})
 			return nil
 		},
@@ -119,8 +120,8 @@ func mustNewRedisClient() (redis.UniversalClient, *redisHook) {
 	return c, hook
 }
 
-// 对于慢或出错请求输出日志并写入influxdb
-func (rh *redisHook) logSlowOrError(ctx context.Context, cmd, err string) {
+// 添加统计至influxdb
+func (rh *redisHook) addStats(ctx context.Context, cmd, err string) {
 	t := ctx.Value(startedAtKey).(*time.Time)
 	d := time.Since(*t)
 	if d > rh.slow || err != "" {
@@ -130,15 +131,18 @@ func (rh *redisHook) logSlowOrError(ctx context.Context, cmd, err string) {
 			Str("use", d.String()).
 			Str("error", err).
 			Msg("")
-		tags := map[string]string{
-			cs.TagOP: cmd,
-		}
-		fields := map[string]interface{}{
-			cs.FieldLatency: int(d.Milliseconds()),
-			cs.FieldError:   err,
-		}
-		GetInfluxDB().Write(cs.MeasurementRedisOP, tags, fields)
 	}
+
+	tags := map[string]string{
+		cs.TagOP: cmd,
+	}
+	fields := map[string]interface{}{
+		cs.FieldLatency: int(d.Milliseconds()),
+	}
+	if len(err) != 0 {
+		fields[cs.FieldError] = err
+	}
+	GetInfluxDB().Write(cs.MeasurementRedisOP, tags, fields)
 }
 
 // BeforeProcess redis处理命令前的hook函数
@@ -159,7 +163,7 @@ func (rh *redisHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 	if err != nil {
 		message = err.Error()
 	}
-	rh.logSlowOrError(ctx, cmd.FullName(), message)
+	rh.addStats(ctx, cmd.FullName(), message)
 	rh.processing.Dec()
 	if log.DebugEnabled() {
 		// 由于redis是较频繁的操作
@@ -194,7 +198,7 @@ func (rh *redisHook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmde
 			message += err.Error()
 		}
 	}
-	rh.logSlowOrError(ctx, cmdSb.String(), message)
+	rh.addStats(ctx, cmdSb.String(), message)
 	rh.pipeProcessing.Dec()
 	return nil
 }

@@ -58,6 +58,7 @@ import (
 	"github.com/vicanso/elton"
 	compress "github.com/vicanso/elton-compress"
 	M "github.com/vicanso/elton/middleware"
+	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/config"
 	_ "github.com/vicanso/tiny-site/controller"
 	"github.com/vicanso/tiny-site/cs"
@@ -72,7 +73,6 @@ import (
 	_ "github.com/vicanso/tiny-site/schedule"
 	"github.com/vicanso/tiny-site/service"
 	"github.com/vicanso/tiny-site/util"
-	"github.com/vicanso/hes"
 	"go.uber.org/automaxprocs/maxprocs"
 )
 
@@ -168,10 +168,13 @@ func dependServiceCheck() (err error) {
 	if err != nil {
 		return
 	}
-	// 程序启动后再执行init schema
-	err = helper.EntInitSchema()
-	if err != nil {
-		return
+	// 设置为0可禁用初始化schema
+	if os.Getenv("INIT_SCHEMA") != "0" {
+		// 程序启动后再执行init schema
+		err = helper.EntInitSchema()
+		if err != nil {
+			return
+		}
 	}
 	configSrv := new(service.ConfigurationSrv)
 	err = configSrv.Refresh()

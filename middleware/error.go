@@ -19,12 +19,12 @@ import (
 	"net/http"
 
 	"github.com/vicanso/elton"
+	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/helper"
 	"github.com/vicanso/tiny-site/log"
 	"github.com/vicanso/tiny-site/session"
 	"github.com/vicanso/tiny-site/util"
-	"github.com/vicanso/hes"
 )
 
 // New Error handler
@@ -93,6 +93,7 @@ func NewError() elton.Handler {
 
 		helper.GetInfluxDB().Write(cs.MeasurementHTTPError, tags, fields)
 		c.StatusCode = he.StatusCode
+		c.SetContentTypeByExt(".json")
 		c.BodyBuffer = bytes.NewBuffer(he.ToJSON())
 		return nil
 	}

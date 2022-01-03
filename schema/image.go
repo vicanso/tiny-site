@@ -44,18 +44,19 @@ func (Image) Fields() []ent.Field {
 		field.String("type").
 			NotEmpty().
 			Comment("图片类型"),
-		field.Int64("size").
+		field.Int("size").
 			NonNegative().
-			Comment("图片长度"),
+			Comment("图片数据长度"),
 		field.Int("width").
 			NonNegative().
 			Comment("图片宽度"),
 		field.Int("height").
 			NonNegative().
 			Comment("图片高度"),
-		field.Strings("tags").
+		field.String("tags").
 			Comment("图片标签"),
 		field.JSON("metadata", &http.Header{}).
+			Optional().
 			Comment("metadata"),
 		field.String("creator").
 			NotEmpty().
@@ -69,6 +70,5 @@ func (Image) Fields() []ent.Field {
 func (Image) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("bucket", "name").Unique(),
-		index.Fields("tags"),
 	}
 }

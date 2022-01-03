@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/vicanso/elton"
+	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/ent"
 	"github.com/vicanso/tiny-site/ent/configuration"
@@ -28,7 +29,6 @@ import (
 	"github.com/vicanso/tiny-site/router"
 	"github.com/vicanso/tiny-site/schema"
 	"github.com/vicanso/tiny-site/service"
-	"github.com/vicanso/hes"
 )
 
 type configurationCtrl struct{}
@@ -156,10 +156,10 @@ func (params *configurationAddParams) save(ctx context.Context, owner string) (*
 // where 将查询条件中的参数转换为对应的where条件
 func (params *configurationListParmas) where(query *ent.ConfigurationQuery) *ent.ConfigurationQuery {
 	if params.Name != "" {
-		query = query.Where(configuration.Name(params.Name))
+		query.Where(configuration.Name(params.Name))
 	}
 	if params.Category != "" {
-		query = query.Where(configuration.CategoryEQ(params.Category))
+		query.Where(configuration.CategoryEQ(params.Category))
 	}
 	return query
 }
@@ -168,10 +168,10 @@ func (params *configurationListParmas) where(query *ent.ConfigurationQuery) *ent
 func (params *configurationListParmas) queryAll(ctx context.Context) ([]*ent.Configuration, error) {
 	query := getConfigurationClient().Query()
 
-	query = query.Limit(params.GetLimit()).
+	query.Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
 		Order(params.GetOrders()...)
-	query = params.where(query)
+	params.where(query)
 
 	return query.All(ctx)
 }
@@ -180,7 +180,7 @@ func (params *configurationListParmas) queryAll(ctx context.Context) ([]*ent.Con
 func (params *configurationListParmas) count(ctx context.Context) (int, error) {
 	query := getConfigurationClient().Query()
 
-	query = params.where(query)
+	params.where(query)
 
 	return query.Count(ctx)
 }

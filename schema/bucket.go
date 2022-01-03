@@ -34,6 +34,7 @@ func (Bucket) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name").
 			NotEmpty().
+			Immutable().
 			Comment("bucket的名称"),
 		field.String("creator").
 			NotEmpty().

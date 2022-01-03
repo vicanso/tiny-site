@@ -34,6 +34,8 @@ const (
 	// ActionAdminCleanCache clean cache
 	ActionAdminCleanCache = "cleanCache"
 
-	// ActionBucketCreate create bucket
-	ActionBucketCreate = "createBucket"
+	// ActionBucketCreate add bucket
+	ActionBucketAdd = "addBucket"
+	// ActionImageAdd add image
+	ActionImageAdd = "addImage"
 )
