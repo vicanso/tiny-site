@@ -24,27 +24,27 @@ import (
 )
 
 func NewFitResizeImage(width, height int) ImageJob {
-	return func(_ context.Context, i *ent.Image) (*ent.Image, error) {
-		if i.Width <= width && i.Height <= height {
-			return i, nil
+	return func(_ context.Context, img *ent.Image) (*ent.Image, error) {
+		if img.Width <= width && img.Height <= height {
+			return img, nil
 		}
-		img, _, err := image.Decode(bytes.NewReader(i.Data))
+		srcImage, _, err := image.Decode(bytes.NewReader(img.Data))
 		if err != nil {
 			return nil, err
 		}
-		img = imaging.Fit(img, width, height, imaging.Lanczos)
+		srcImage = imaging.Fit(srcImage, width, height, imaging.Lanczos)
 		buffer := bytes.Buffer{}
 		format := imaging.JPEG
-		if i.Type == "png" {
+		if img.Type == "png" {
 			format = imaging.PNG
 		}
-		err = imaging.Encode(&buffer, img, format)
+		err = imaging.Encode(&buffer, srcImage, format)
 		if err != nil {
 			return nil, err
 		}
-		i.Width = img.Bounds().Dx()
-		i.Height = img.Bounds().Dy()
-		i.Data = buffer.Bytes()
-		return i, nil
+		img.Width = srcImage.Bounds().Dx()
+		img.Height = srcImage.Bounds().Dy()
+		img.Data = buffer.Bytes()
+		return img, nil
 	}
 }

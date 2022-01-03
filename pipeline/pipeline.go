@@ -16,19 +16,27 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 
 	"github.com/vicanso/tiny-site/ent"
 )
 
+// 不再执行后续时返回
+var ErrAbort = errors.New("abort")
+
 type ImageJob func(context.Context, *ent.Image) (*ent.Image, error)
 
-func Do(ctx context.Context, i *ent.Image, jobs ...ImageJob) (*ent.Image, error) {
+func Do(ctx context.Context, img *ent.Image, jobs ...ImageJob) (*ent.Image, error) {
+	var err error
 	for _, fn := range jobs {
-		img, err := fn(ctx, i)
+		img, err = fn(ctx, img)
 		if err != nil {
+			// 如果是abort error，则直接返回数据
+			if err == ErrAbort {
+				return img, nil
+			}
 			return nil, err
 		}
-		i = img
 	}
-	return i, nil
+	return img, nil
 }
