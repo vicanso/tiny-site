@@ -63,6 +63,9 @@ func (Image) Fields() []ent.Field {
 			Comment("创建者"),
 		field.Bytes("data").
 			Comment("图片数据"),
+		field.String("description").
+			Optional().
+			Comment("图片描述"),
 	}
 }
 

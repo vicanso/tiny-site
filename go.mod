@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	entgo.io/ent v0.9.1
+	github.com/disintegration/imaging v1.6.2
 	github.com/dop251/goja v0.0.0-20220102113305-2298ace6d09d
 	github.com/dustin/go-humanize v1.0.0
 	github.com/felixge/fgprof v0.9.2

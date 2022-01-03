@@ -19,7 +19,9 @@ import (
 	"context"
 	"image"
 	"io/ioutil"
+	"time"
 
+	"github.com/disintegration/imaging"
 	"github.com/vicanso/elton"
 	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/cs"
@@ -46,9 +48,10 @@ type (
 		listParams
 	}
 	imageAddParams struct {
-		Bucket string `json:"bucket" validate:"required,xImageBucket"`
-		Name   string `json:"name" validate:"omitempty,xImageName"`
-		Tags   string `json:"tags" validate:"omitempty,xImageTags"`
+		Bucket      string `json:"bucket" validate:"required,xImageBucket"`
+		Name        string `json:"name" validate:"omitempty,xImageName"`
+		Tags        string `json:"tags" validate:"omitempty,xImageTags"`
+		Description string `json:"description" validate:"omitempty,xImageDescription"`
 
 		creator string
 		data    []byte
@@ -61,7 +64,10 @@ type (
 	}
 	imageGetThumbnailParams struct {
 		Bucket string `json:"bucket" validate:"required,xImageBucket"`
-		Name   string `json:"name" validate:"omitempty,xImageName"`
+		// 图片名称
+		Name string `json:"name" validate:"omitempty,xImageName"`
+		// 缩略图大小
+		ThumbnailSize int `json:"thumbnailSize" validate:"omitempty,xImageThumbnailSize" default:"128"`
 	}
 )
 
@@ -139,6 +145,7 @@ func (params *imageAddParams) save(ctx context.Context) (*ent.Image, error) {
 		SetTags(params.Tags).
 		SetCreator(params.creator).
 		SetData(params.data).
+		SetDescription(params.Description).
 		Save(ctx)
 }
 
@@ -272,6 +279,8 @@ func (*imageCtrl) addImage(c *elton.Context) error {
 	if err != nil {
 		return err
 	}
+	// 图片数据不返回
+	result.Data = nil
 	c.Created(result)
 	return nil
 }
@@ -304,10 +313,39 @@ func (*imageCtrl) listImage(c *elton.Context) error {
 
 func (*imageCtrl) getImageThumbnail(c *elton.Context) error {
 	params := imageGetThumbnailParams{}
-	err := validate.Do(&params, c.Params.ToMap())
+	err := validate.Query(&params, util.MergeMapString(c.Params.ToMap(), c.Query()))
 	if err != nil {
 		return err
 	}
-	
+	result, err := getImageClient().Query().
+		Where(entImage.Bucket(params.Bucket)).
+		Where(entImage.Name(params.Name)).
+		First(c.Context())
+	if err != nil {
+		return err
+	}
+	data := result.Data
+	if result.Width > params.ThumbnailSize ||
+		result.Height > params.ThumbnailSize {
+		img, _, err := image.Decode(bytes.NewReader(data))
+		if err != nil {
+			return err
+		}
+		img = imaging.Fit(img, params.ThumbnailSize, params.ThumbnailSize, imaging.Lanczos)
+		buffer := bytes.Buffer{}
+		format := imaging.JPEG
+		if result.Type == "png" {
+			format = imaging.PNG
+		}
+		err = imaging.Encode(&buffer, img, format)
+		if err != nil {
+			return err
+		}
+		data = buffer.Bytes()
+	}
+	c.CacheMaxAge(time.Minute)
+	c.SetContentTypeByExt("." + result.Type)
+	c.BodyBuffer = bytes.NewBuffer(data)
+
 	return nil
 }

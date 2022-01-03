@@ -21,4 +21,5 @@ func init() {
 	AddAlias("xImageName", "min=1,max=50")
 	AddAlias("xImageTag", "min=1,max=20")
 	AddAlias("xImageTags", "min=1,max=50")
+	AddAlias("xImageThumbnailSize", "number,max=256")
 }
