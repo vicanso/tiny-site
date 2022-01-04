@@ -45,6 +45,7 @@ require (
 	go.uber.org/automaxprocs v1.4.0
 	go.uber.org/ratelimit v0.2.0
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
+	google.golang.org/grpc v1.40.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
 
@@ -63,6 +64,7 @@ require (
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/pprof v0.0.0-20211214055906-6f57359322fd // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
@@ -101,11 +103,13 @@ require (
 	github.com/vicanso/http-trace v1.0.6 // indirect
 	github.com/vicanso/intranet-ip v0.0.1 // indirect
 	github.com/vicanso/keygrip v1.2.1 // indirect
+	github.com/vicanso/tiny v1.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e // indirect
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
 	golang.org/x/sys v0.0.0-20211020174200-9d6173849985 // indirect
 	golang.org/x/text v0.3.6 // indirect
+	google.golang.org/genproto v0.0.0-20210828152312-66f60bf46e71 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect

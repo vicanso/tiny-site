@@ -15,12 +15,8 @@
 package pipeline
 
 import (
-	"bytes"
 	"context"
-	"image"
 
-	"github.com/vicanso/go-axios"
-	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/ent"
 	entImage "github.com/vicanso/tiny-site/ent/image"
 	"github.com/vicanso/tiny-site/helper"
@@ -37,22 +33,16 @@ func NewGetEntImage(bucket, name string) ImageJob {
 
 func NewGetHTTPImage(url string) ImageJob {
 	return func(ctx context.Context, _ *ent.Image) (*ent.Image, error) {
-		resp, err := axios.GetDefaultInstance().GetX(ctx, url)
-		if err != nil {
-			return nil, err
-		}
-		if resp.Status != 200 {
-			return nil, hes.New("get image fail")
-		}
-		img, t, err := image.Decode(bytes.NewReader(resp.Data))
+		info, err := getImageFromURL(ctx, url)
 		if err != nil {
 			return nil, err
 		}
 		return &ent.Image{
-			Width:  img.Bounds().Dx(),
-			Height: img.Bounds().Dy(),
-			Data:   resp.Data,
-			Type:   t,
+			Width:  info.img.Bounds().Dx(),
+			Height: info.img.Bounds().Dy(),
+			Size:   len(info.data),
+			Data:   info.data,
+			Type:   info.format,
 		}, nil
 	}
 }

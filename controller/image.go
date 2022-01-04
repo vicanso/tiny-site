@@ -19,6 +19,7 @@ import (
 	"context"
 	"image"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/vicanso/elton"
@@ -109,10 +110,16 @@ func init() {
 		ctrl.listImage,
 	)
 
-	router.NewGroup(prefix).GET(
+	ng := router.NewGroup(prefix)
+	ng.GET(
 		"/v1/thumbnails/{bucket}/{name}",
 		ctrl.getImageThumbnail,
 	)
+	ng.GET(
+		"/v1/pipeline",
+		ctrl.pipeline,
+	)
+
 }
 
 func (params *bucketListParams) queryAll(ctx context.Context) ([]*ent.Bucket, error) {
@@ -329,5 +336,24 @@ func (*imageCtrl) getImageThumbnail(c *elton.Context) error {
 	c.SetContentTypeByExt("." + img.Type)
 	c.BodyBuffer = bytes.NewBuffer(img.Data)
 
+	return nil
+}
+
+func (*imageCtrl) pipeline(c *elton.Context) error {
+	rawQuery := c.Request.URL.RawQuery
+	if len(rawQuery) == 0 {
+		return hes.New("pipeline can not be empty")
+	}
+	tasks := strings.Split(rawQuery, "|")
+	jobs, err := pipeline.Parse(tasks, c.Request.Header)
+	if err != nil {
+		return err
+	}
+	img, err := pipeline.Do(c.Context(), nil, jobs...)
+	if err != nil {
+		return err
+	}
+	c.SetContentTypeByExt("." + img.Type)
+	c.BodyBuffer = bytes.NewBuffer(img.Data)
 	return nil
 }

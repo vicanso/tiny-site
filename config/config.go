@@ -158,6 +158,9 @@ type (
 		Addr  string `validate:"omitempty,url"`
 		Token string
 	}
+	TinyConfig struct {
+		Addr string `validate:"required,hostname_port"`
+	}
 )
 
 // mustLoadConfig 加载配置，出错是则抛出panic
@@ -418,4 +421,18 @@ func MustGetPyroscopeConfig() *PyroscopeConfig {
 		Token: defaultViperX.GetStringFromENV(prefix + "token"),
 	}
 	return pyroscopeConfig
+}
+
+func MustGetTinyConfig() *TinyConfig {
+	prefix := "tiny."
+	tinyURL := defaultViperX.GetStringFromENV(prefix + "url")
+	urlInfo, err := url.Parse(tinyURL)
+	if err != nil {
+		panic(err)
+	}
+	tinyConfig := &TinyConfig{
+		Addr: urlInfo.Host,
+	}
+	mustValidate(tinyConfig)
+	return tinyConfig
 }

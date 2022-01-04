@@ -64,3 +64,6 @@ minio:
 pyroscope:
   addr: http://127.0.0.1:4040
   # token: ""
+
+tiny:
+  url: http://127.0.0.1:6002

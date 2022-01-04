@@ -15,7 +15,6 @@
 package pipeline
 
 import (
-	"bytes"
 	"context"
 	"image"
 
@@ -23,28 +22,38 @@ import (
 	"github.com/vicanso/tiny-site/ent"
 )
 
+type resizeHandler func(image.Image, int, int, imaging.ResampleFilter) *image.NRGBA
+
+func resize(fn resizeHandler, img *ent.Image, width, height int) (*ent.Image, error) {
+	if img.Width <= width && img.Height <= height {
+		return img, nil
+	}
+	srcImage, err := decodeImage(img)
+	if err != nil {
+		return nil, err
+	}
+	srcImage = fn(srcImage, width, height, imaging.Lanczos)
+	data, err := encodeImage(srcImage, img.Type)
+	if err != nil {
+		return nil, err
+	}
+	img.Width = srcImage.Bounds().Dx()
+	img.Height = srcImage.Bounds().Dy()
+	img.Size = len(data)
+	img.Data = data
+	return img, nil
+}
+
 func NewFitResizeImage(width, height int) ImageJob {
 	return func(_ context.Context, img *ent.Image) (*ent.Image, error) {
-		if img.Width <= width && img.Height <= height {
-			return img, nil
-		}
-		srcImage, _, err := image.Decode(bytes.NewReader(img.Data))
-		if err != nil {
-			return nil, err
-		}
-		srcImage = imaging.Fit(srcImage, width, height, imaging.Lanczos)
-		buffer := bytes.Buffer{}
-		format := imaging.JPEG
-		if img.Type == "png" {
-			format = imaging.PNG
-		}
-		err = imaging.Encode(&buffer, srcImage, format)
-		if err != nil {
-			return nil, err
-		}
-		img.Width = srcImage.Bounds().Dx()
-		img.Height = srcImage.Bounds().Dy()
-		img.Data = buffer.Bytes()
-		return img, nil
+		return resize(imaging.Fit, img, width, height)
+	}
+}
+
+func NewFillResizeImage(width, height int) ImageJob {
+	return func(_ context.Context, img *ent.Image) (*ent.Image, error) {
+		return resize(func(i1 image.Image, i2, i3 int, rf imaging.ResampleFilter) *image.NRGBA {
+			return imaging.Fill(i1, i2, i3, imaging.Center, rf)
+		}, img, width, height)
 	}
 }
