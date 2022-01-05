@@ -104,6 +104,10 @@ func getImageClient() *ent.ImageClient {
 	return helper.EntGetClient().Image
 }
 
+func getStorageClient() *ent.StorageClient {
+	return helper.EntGetClient().Storage
+}
+
 func newMagicalCaptchaValidate() elton.Handler {
 	magicValue := ""
 	if !util.IsProduction() {

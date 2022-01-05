@@ -25,9 +25,8 @@ import (
 	"strings"
 
 	"github.com/disintegration/imaging"
-	"github.com/vicanso/go-axios"
 	"github.com/vicanso/hes"
-	"github.com/vicanso/tiny-site/ent"
+	"github.com/vicanso/tiny-site/storage"
 )
 
 const (
@@ -52,9 +51,9 @@ const (
 // 不再执行后续时返回
 var ErrAbort = errors.New("abort")
 
-type ImageJob func(context.Context, *ent.Image) (*ent.Image, error)
+type ImageJob func(context.Context, *storage.Image) (*storage.Image, error)
 
-func Do(ctx context.Context, img *ent.Image, jobs ...ImageJob) (*ent.Image, error) {
+func Do(ctx context.Context, img *storage.Image, jobs ...ImageJob) (*storage.Image, error) {
 	var err error
 	for _, fn := range jobs {
 		img, err = fn(ctx, img)
@@ -73,7 +72,7 @@ type Parser func([]string, http.Header) (ImageJob, error)
 
 func parseProxy(params []string, _ http.Header) (ImageJob, error) {
 	if len(params) != 2 {
-		return nil, hes.New("proxy params invalid")
+		return nil, hes.New("proxy params is invalid")
 	}
 	proxyURL, err := url.QueryUnescape(params[1])
 	if err != nil {
@@ -105,7 +104,7 @@ func parseAutoOptim(params []string, header http.Header) (ImageJob, error) {
 
 func parseFitResize(params []string, _ http.Header) (ImageJob, error) {
 	if len(params) < 3 {
-		return nil, hes.New("fit resize params invalid")
+		return nil, hes.New("fit resize params is invalid")
 	}
 	width, _ := strconv.Atoi(params[1])
 	height, _ := strconv.Atoi(params[2])
@@ -113,7 +112,7 @@ func parseFitResize(params []string, _ http.Header) (ImageJob, error) {
 }
 func parseFillResize(params []string, _ http.Header) (ImageJob, error) {
 	if len(params) < 3 {
-		return nil, hes.New("fill resize params invalid")
+		return nil, hes.New("fill resize params is invalid")
 	}
 	width, _ := strconv.Atoi(params[1])
 	height, _ := strconv.Atoi(params[2])
@@ -122,9 +121,22 @@ func parseFillResize(params []string, _ http.Header) (ImageJob, error) {
 
 func parseBucket(params []string, _ http.Header) (ImageJob, error) {
 	if len(params) < 3 {
-		return nil, hes.New("bucket params invalid")
+		return nil, hes.New("bucket params is invalid")
 	}
 	return NewGetEntImage(params[1], params[2]), nil
+}
+
+func parseFinder(params []string, _ http.Header) (ImageJob, error) {
+	if len(params) < 2 {
+		return nil, hes.New("find params is invalid")
+	}
+	finder, err := storage.GetFinder(params[0])
+	if err != nil {
+		return nil, err
+	}
+	return func(ctx context.Context, img *storage.Image) (*storage.Image, error) {
+		return finder(ctx, params[1:]...)
+	}, nil
 }
 
 func Parse(tasks []string, header http.Header) ([]ImageJob, error) {
@@ -145,6 +157,8 @@ func Parse(tasks []string, header http.Header) ([]ImageJob, error) {
 			fn = parseFitResize
 		case "fillResize":
 			fn = parseFillResize
+		default:
+			fn = parseFinder
 		}
 		if fn == nil {
 			continue
@@ -158,32 +172,7 @@ func Parse(tasks []string, header http.Header) ([]ImageJob, error) {
 	return jobs, nil
 }
 
-type imageInfo struct {
-	data   []byte
-	img    image.Image
-	format string
-}
-
-func getImageFromURL(ctx context.Context, url string) (*imageInfo, error) {
-	resp, err := axios.GetDefaultInstance().GetX(ctx, url)
-	if err != nil {
-		return nil, err
-	}
-	if resp.Status != 200 {
-		return nil, hes.New("get image fail")
-	}
-	img, t, err := image.Decode(bytes.NewReader(resp.Data))
-	if err != nil {
-		return nil, err
-	}
-	return &imageInfo{
-		data:   resp.Data,
-		img:    img,
-		format: t,
-	}, nil
-}
-
-func decodeImage(img *ent.Image) (image.Image, error) {
+func decodeImage(img *storage.Image) (image.Image, error) {
 	if len(img.Data) == 0 {
 		return nil, hes.New("data of image can not be empty")
 	}

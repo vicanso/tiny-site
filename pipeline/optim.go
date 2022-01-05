@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/vicanso/tiny-site/config"
-	"github.com/vicanso/tiny-site/ent"
+	"github.com/vicanso/tiny-site/storage"
 	"github.com/vicanso/tiny/pb"
 	"google.golang.org/grpc"
 )
@@ -36,7 +36,7 @@ func mustNewTinyConnection() *grpc.ClientConn {
 	return conn
 }
 
-func optim(ctx context.Context, img *ent.Image, quality int, format string) (*ent.Image, error) {
+func optim(ctx context.Context, img *storage.Image, quality int, format string) (*storage.Image, error) {
 	client := pb.NewOptimClient(tinyConn)
 	in := pb.OptimRequest{
 		Data:    img.Data,
@@ -66,14 +66,13 @@ func optim(ctx context.Context, img *ent.Image, quality int, format string) (*en
 	if err != nil {
 		return nil, err
 	}
-	img.Data = reply.Data
 	img.Type = format
-	img.Size = len(reply.Data)
+	img.SetData(reply.Data)
 	return img, nil
 }
 
 func NewAutoOptimImage(quality int, header http.Header) ImageJob {
-	return func(ctx context.Context, img *ent.Image) (*ent.Image, error) {
+	return func(ctx context.Context, img *storage.Image) (*storage.Image, error) {
 		format := img.Type
 		accept := header.Get("Accept")
 		acceptWebp := strings.Contains(accept, "image/webp")
@@ -92,7 +91,7 @@ func NewAutoOptimImage(quality int, header http.Header) ImageJob {
 }
 
 func NewOptimImage(quality int, formats ...string) ImageJob {
-	return func(ctx context.Context, img *ent.Image) (*ent.Image, error) {
+	return func(ctx context.Context, img *storage.Image) (*storage.Image, error) {
 		format := img.Type
 		if len(formats) != 0 {
 			format = formats[0]

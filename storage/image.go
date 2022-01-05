@@ -15,7 +15,9 @@
 package storage
 
 import (
+	"bytes"
 	"context"
+	"image"
 
 	"github.com/vicanso/tiny-site/ent"
 )
@@ -27,6 +29,34 @@ type ImageFilterParams struct {
 	Limit int `json:"limit"`
 	// 偏移量
 	Offset int `json:"offset"`
+}
+
+type ImageFinder func(ctx context.Context, params ...string) (*Image, error)
+
+type Image struct {
+	Type   string
+	Size   int
+	Width  int
+	Height int
+	Data   []byte
+	img    image.Image
+}
+
+func (i *Image) Image() (image.Image, error) {
+	if i.img == nil {
+		img, _, err := image.Decode(bytes.NewReader(i.Data))
+		if err != nil {
+			return nil, err
+		}
+		i.img = img
+	}
+	return i.img, nil
+}
+
+func (i *Image) SetData(data []byte) {
+	i.Data = data
+	i.Size = len(data)
+	i.img = nil
 }
 
 type ImageStorage interface {

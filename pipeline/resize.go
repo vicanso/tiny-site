@@ -19,12 +19,12 @@ import (
 	"image"
 
 	"github.com/disintegration/imaging"
-	"github.com/vicanso/tiny-site/ent"
+	"github.com/vicanso/tiny-site/storage"
 )
 
 type resizeHandler func(image.Image, int, int, imaging.ResampleFilter) *image.NRGBA
 
-func resize(fn resizeHandler, img *ent.Image, width, height int) (*ent.Image, error) {
+func resize(fn resizeHandler, img *storage.Image, width, height int) (*storage.Image, error) {
 	if img.Width <= width && img.Height <= height {
 		return img, nil
 	}
@@ -39,19 +39,18 @@ func resize(fn resizeHandler, img *ent.Image, width, height int) (*ent.Image, er
 	}
 	img.Width = srcImage.Bounds().Dx()
 	img.Height = srcImage.Bounds().Dy()
-	img.Size = len(data)
-	img.Data = data
+	img.SetData(data)
 	return img, nil
 }
 
 func NewFitResizeImage(width, height int) ImageJob {
-	return func(_ context.Context, img *ent.Image) (*ent.Image, error) {
+	return func(_ context.Context, img *storage.Image) (*storage.Image, error) {
 		return resize(imaging.Fit, img, width, height)
 	}
 }
 
 func NewFillResizeImage(width, height int) ImageJob {
-	return func(_ context.Context, img *ent.Image) (*ent.Image, error) {
+	return func(_ context.Context, img *storage.Image) (*storage.Image, error) {
 		return resize(func(i1 image.Image, i2, i3 int, rf imaging.ResampleFilter) *image.NRGBA {
 			return imaging.Fill(i1, i2, i3, imaging.Center, rf)
 		}, img, width, height)

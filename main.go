@@ -72,6 +72,7 @@ import (
 	routermock "github.com/vicanso/tiny-site/router_mock"
 	_ "github.com/vicanso/tiny-site/schedule"
 	"github.com/vicanso/tiny-site/service"
+	"github.com/vicanso/tiny-site/storage"
 	"github.com/vicanso/tiny-site/util"
 	"go.uber.org/automaxprocs/maxprocs"
 )
@@ -175,6 +176,10 @@ func dependServiceCheck() (err error) {
 		if err != nil {
 			return
 		}
+	}
+	err = storage.InitImageFinder(context.Background())
+	if err != nil {
+		return
 	}
 	configSrv := new(service.ConfigurationSrv)
 	err = configSrv.Refresh()

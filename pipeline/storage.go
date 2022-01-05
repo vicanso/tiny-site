@@ -17,32 +17,32 @@ package pipeline
 import (
 	"context"
 
-	"github.com/vicanso/tiny-site/ent"
 	entImage "github.com/vicanso/tiny-site/ent/image"
 	"github.com/vicanso/tiny-site/helper"
+	"github.com/vicanso/tiny-site/storage"
 )
 
 func NewGetEntImage(bucket, name string) ImageJob {
-	return func(ctx context.Context, _ *ent.Image) (*ent.Image, error) {
-		return helper.EntGetClient().Image.Query().
+	return func(ctx context.Context, _ *storage.Image) (*storage.Image, error) {
+		img, err := helper.EntGetClient().Image.Query().
 			Where(entImage.Bucket(bucket)).
 			Where(entImage.Name(name)).
 			First(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return &storage.Image{
+			Type:   img.Type,
+			Size:   img.Size,
+			Width:  img.Width,
+			Height: img.Height,
+			Data:   img.Data,
+		}, nil
 	}
 }
 
 func NewGetHTTPImage(url string) ImageJob {
-	return func(ctx context.Context, _ *ent.Image) (*ent.Image, error) {
-		info, err := getImageFromURL(ctx, url)
-		if err != nil {
-			return nil, err
-		}
-		return &ent.Image{
-			Width:  info.img.Bounds().Dx(),
-			Height: info.img.Bounds().Dy(),
-			Size:   len(info.data),
-			Data:   info.data,
-			Type:   info.format,
-		}, nil
+	return func(ctx context.Context, _ *storage.Image) (*storage.Image, error) {
+		return storage.GetImageFromURL(ctx, url)
 	}
 }

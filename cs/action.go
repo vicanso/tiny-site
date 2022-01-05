@@ -38,4 +38,9 @@ const (
 	ActionBucketAdd = "addBucket"
 	// ActionImageAdd add image
 	ActionImageAdd = "addImage"
+
+	// ActionStorageAdd add storage
+	ActionStorageAdd = "addStorage"
+	// ActionStorageUpdate update storage
+	ActionStorageUpdate = "updateStorage"
 )

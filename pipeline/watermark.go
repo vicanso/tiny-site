@@ -20,17 +20,21 @@ import (
 	"image/color"
 
 	"github.com/disintegration/imaging"
-	"github.com/vicanso/tiny-site/ent"
+	"github.com/vicanso/tiny-site/storage"
 )
 
 func NewWatermark(url string, postion string, angle float64) ImageJob {
-	return func(ctx context.Context, img *ent.Image) (*ent.Image, error) {
-		info, err := getImageFromURL(ctx, url)
+	return func(ctx context.Context, img *storage.Image) (*storage.Image, error) {
+		info, err := storage.GetImageFromURL(ctx, url)
+		if err != nil {
+			return nil, err
+		}
+		watermarkImg, err := info.Image()
 		if err != nil {
 			return nil, err
 		}
 		if angle != 0 {
-			info.img = imaging.Rotate(info.img, angle, color.Transparent)
+			watermarkImg = imaging.Rotate(watermarkImg, angle, color.Transparent)
 		}
 		dst, err := decodeImage(img)
 		if err != nil {
@@ -38,8 +42,8 @@ func NewWatermark(url string, postion string, angle float64) ImageJob {
 		}
 		x := 0
 		y := 0
-		watermarkWidth := info.img.Bounds().Dx()
-		watermarkHeight := info.img.Bounds().Dy()
+		watermarkWidth := watermarkImg.Bounds().Dx()
+		watermarkHeight := watermarkImg.Bounds().Dy()
 		switch postion {
 		case PositionTop:
 			x = (img.Width - watermarkWidth) / 2
@@ -62,13 +66,12 @@ func NewWatermark(url string, postion string, angle float64) ImageJob {
 			x = img.Width - watermarkWidth
 			y = img.Height - watermarkHeight
 		}
-		dst = imaging.Paste(dst, info.img, image.Pt(x, y))
+		dst = imaging.Paste(dst, watermarkImg, image.Pt(x, y))
 		data, err := encodeImage(dst, img.Type)
 		if err != nil {
 			return nil, err
 		}
-		img.Size = len(data)
-		img.Data = data
+		img.SetData(data)
 
 		return img, nil
 	}
