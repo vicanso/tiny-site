@@ -18,10 +18,13 @@ import (
 	"bytes"
 	"context"
 	"image"
+	"io"
 	"net/url"
 	"strings"
 	"sync"
 
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/vicanso/go-axios"
 	"github.com/vicanso/hes"
 	"github.com/vicanso/tiny-site/ent/storage"
@@ -71,6 +74,48 @@ func newHTTPImageFinder(name, uri string) (ImageFinder, error) {
 		return GetImageFromURL(ctx, u.URL.String()+requestURI)
 	}, nil
 }
+
+func newMinioImageFinder(_, uri string) (ImageFinder, error) {
+	urlInfo, err := url.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+	accessKey := urlInfo.Query().Get("accessKey")
+	secretKey := urlInfo.Query().Get("secretKey")
+	minioClient, err := minio.New(urlInfo.Host, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Secure: false,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return func(ctx context.Context, params ...string) (*Image, error) {
+		if len(params) != 2 {
+			return nil, hes.New("minio params is invalid")
+		}
+		obj, err := minioClient.GetObject(ctx, params[0], params[1], minio.GetObjectOptions{})
+		if err != nil {
+			return nil, err
+		}
+		buf, err := io.ReadAll(obj)
+		if err != nil {
+			return nil, err
+		}
+		img, t, err := image.Decode(bytes.NewReader(buf))
+		if err != nil {
+			return nil, err
+		}
+		return &Image{
+			Type:   t,
+			Size:   len(buf),
+			Width:  img.Bounds().Dx(),
+			Height: img.Bounds().Dy(),
+			Data:   buf,
+			img:    img,
+		}, nil
+	}, nil
+}
+
 func GetImageFromURL(ctx context.Context, url string) (*Image, error) {
 	resp, err := axios.GetDefaultInstance().GetX(ctx, url)
 	if err != nil {
@@ -106,6 +151,8 @@ func InitImageFinder(ctx context.Context) error {
 		switch item.Category {
 		case "http":
 			finder, err = newHTTPImageFinder(item.Name, item.URI)
+		case "minio":
+			finder, err = newMinioImageFinder(item.Name, item.URI)
 		}
 		// 初始化finder失败时，只输出日志
 		if err != nil {

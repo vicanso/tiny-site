@@ -32,6 +32,11 @@ type (
 		Category string `json:"category" validate:"required,xStorageCategory"`
 		URI      string `json:"uri" validate:"required,xStorageURI"`
 	}
+	storageUpdateParams struct {
+		Name     string `json:"name" validate:"omitempty,xStorageName"`
+		Category string `json:"category" validate:"omitempty,xStorageCategory"`
+		URI      string `json:"uri" validate:"omitempty,xStorageURI"`
+	}
 )
 
 type (
@@ -58,6 +63,12 @@ func init() {
 		shouldBeAdmin,
 		ctrl.add,
 	)
+	g.PATCH(
+		"/v1/{id}",
+		newTrackerMiddleware(cs.ActionStorageUpdate),
+		shouldBeAdmin,
+		ctrl.update,
+	)
 }
 
 func (params *storageAddParams) save(ctx context.Context) (*ent.Storage, error) {
@@ -66,6 +77,20 @@ func (params *storageAddParams) save(ctx context.Context) (*ent.Storage, error) 
 		SetCategory(storage.Category(params.Category)).
 		SetURI(params.URI).
 		Save(ctx)
+}
+
+func (params *storageUpdateParams) update(ctx context.Context, id int) (*ent.Storage, error) {
+	update := getStorageClient().UpdateOneID(id)
+	if params.Category != "" {
+		update.SetCategory(storage.Category(params.Category))
+	}
+	if params.Name != "" {
+		update.SetName(params.Name)
+	}
+	if params.URI != "" {
+		update.SetURI(params.URI)
+	}
+	return update.Save(ctx)
 }
 
 func (*storageCtrl) add(c *elton.Context) error {
@@ -93,5 +118,23 @@ func (*storageCtrl) list(c *elton.Context) error {
 	c.Body = &storageListResp{
 		Storages: storages,
 	}
+	return nil
+}
+
+func (*storageCtrl) update(c *elton.Context) error {
+	params := storageUpdateParams{}
+	err := validateBody(c, &params)
+	if err != nil {
+		return err
+	}
+	id, err := getIDFromParams(c)
+	if err != nil {
+		return err
+	}
+	result, err := params.update(c.Context(), id)
+	if err != nil {
+		return err
+	}
+	c.Body = result
 	return nil
 }
