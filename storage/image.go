@@ -53,6 +53,21 @@ func (i *Image) Image() (image.Image, error) {
 	return i.img, nil
 }
 
+func NewImageFromBytes(data []byte) (*Image, error) {
+	img, t, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	return &Image{
+		Type:   t,
+		Size:   len(data),
+		Width:  img.Bounds().Dx(),
+		Height: img.Bounds().Dy(),
+		Data:   data,
+		img:    img,
+	}, nil
+}
+
 func (i *Image) SetData(data []byte) {
 	i.Data = data
 	i.Size = len(data)

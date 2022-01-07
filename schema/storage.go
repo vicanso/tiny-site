@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	StorageCategoryHTTP      = "http"
-	StorageCategoryMinio     = "minio"
-	StorageCategoryAliyunOSS = "aliyunOSS"
+	StorageCategoryHTTP   = "http"
+	StorageCategoryMinio  = "minio"
+	StorageCategoryOSS    = "oss"
+	StorageCategoryGridfs = "gridfs"
 )
 
 type Storage struct {
@@ -46,7 +47,8 @@ func (Storage) Fields() []ent.Field {
 			Values(
 				StorageCategoryHTTP,
 				StorageCategoryMinio,
-				StorageCategoryAliyunOSS,
+				StorageCategoryOSS,
+				StorageCategoryGridfs,
 			).
 			Comment("存储类型"),
 		field.String("uri").

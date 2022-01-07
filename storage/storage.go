@@ -17,11 +17,11 @@ package storage
 import (
 	"bytes"
 	"context"
-	"image"
 	"io"
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -32,9 +32,19 @@ import (
 	"github.com/vicanso/tiny-site/log"
 	"github.com/vicanso/tiny-site/schema"
 	"github.com/vicanso/upstream"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/gridfs"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
+// 记录所有的http upstream
 var httpUpstreams = sync.Map{}
+
+// 记录所有的mongodb client
+var mongoClients = sync.Map{}
 
 var finders = sync.Map{}
 
@@ -101,18 +111,50 @@ func newMinioImageFinder(_, uri string) (ImageFinder, error) {
 		if err != nil {
 			return nil, err
 		}
-		img, t, err := image.Decode(bytes.NewReader(buf))
+		return NewImageFromBytes(buf)
+	}, nil
+}
+
+func newMongoImageFinder(name, uri string) (ImageFinder, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cs, err := connstring.ParseAndValidate(uri)
+	if err != nil {
+		return nil, err
+	}
+	if len(cs.Database) == 0 {
+		return nil, hes.New("database can not be nil")
+	}
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	if err != nil {
+		return nil, err
+	}
+
+	mongoClients.Store(name, client)
+	return func(ctx context.Context, params ...string) (*Image, error) {
+		if len(params) == 0 {
+			return nil, hes.New("gridfs params is invalid")
+		}
+		db := client.Database(cs.Database)
+		collection := options.DefaultName
+		if len(params) > 1 {
+			collection = params[1]
+		}
+		bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName(collection))
 		if err != nil {
 			return nil, err
 		}
-		return &Image{
-			Type:   t,
-			Size:   len(buf),
-			Width:  img.Bounds().Dx(),
-			Height: img.Bounds().Dy(),
-			Data:   buf,
-			img:    img,
-		}, nil
+		buffer := bytes.Buffer{}
+		id, err := primitive.ObjectIDFromHex(params[0])
+		if err != nil {
+			return nil, err
+		}
+		_, err = bucket.DownloadToStream(id, &buffer)
+		if err != nil {
+			return nil, err
+		}
+		return NewImageFromBytes(buffer.Bytes())
 	}, nil
 }
 
@@ -124,18 +166,7 @@ func GetImageFromURL(ctx context.Context, url string) (*Image, error) {
 	if resp.Status != 200 {
 		return nil, hes.New("get image fail")
 	}
-	img, t, err := image.Decode(bytes.NewReader(resp.Data))
-	if err != nil {
-		return nil, err
-	}
-	return &Image{
-		Type:   t,
-		Size:   len(resp.Data),
-		Width:  img.Bounds().Dx(),
-		Height: img.Bounds().Dy(),
-		Data:   resp.Data,
-		img:    img,
-	}, nil
+	return NewImageFromBytes(resp.Data)
 }
 
 func InitImageFinder(ctx context.Context) error {
@@ -149,10 +180,12 @@ func InitImageFinder(ctx context.Context) error {
 		var finder ImageFinder
 		var err error
 		switch item.Category {
-		case "http":
+		case schema.StorageCategoryHTTP:
 			finder, err = newHTTPImageFinder(item.Name, item.URI)
-		case "minio":
+		case schema.StorageCategoryMinio:
 			finder, err = newMinioImageFinder(item.Name, item.URI)
+		case schema.StorageCategoryGridfs:
+			finder, err = newMongoImageFinder(item.Name, item.URI)
 		}
 		// 初始化finder失败时，只输出日志
 		if err != nil {
