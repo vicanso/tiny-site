@@ -17,6 +17,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/url"
 	"strings"
@@ -33,6 +34,7 @@ import (
 	"github.com/vicanso/tiny-site/schema"
 	"github.com/vicanso/upstream"
 
+	oss "github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
@@ -158,6 +160,43 @@ func newMongoImageFinder(name, uri string) (ImageFinder, error) {
 	}, nil
 }
 
+func newOSSImageFinder(name, uri string) (ImageFinder, error) {
+	urlInfo, err := url.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+	accessKey := urlInfo.Query().Get("accessKey")
+	secretKey := urlInfo.Query().Get("secretKey")
+	if len(accessKey) == 0 || len(secretKey) == 0 {
+		return nil, hes.New("access key and secret key can not be nil")
+	}
+	endpoint := fmt.Sprintf("%s://%s/", urlInfo.Scheme, urlInfo.Hostname())
+	client, err := oss.New(endpoint, accessKey, secretKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(ctx context.Context, params ...string) (*Image, error) {
+		if len(params) != 2 {
+			return nil, hes.New("oss params is invalid")
+		}
+		bucket, err := client.Bucket(params[0])
+		if err != nil {
+			return nil, err
+		}
+		r, err := bucket.GetObject(params[1])
+		if err != nil {
+			return nil, err
+		}
+		buf, err := io.ReadAll(r)
+		if err != nil {
+			return nil, err
+		}
+
+		return NewImageFromBytes(buf)
+	}, nil
+}
+
 func GetImageFromURL(ctx context.Context, url string) (*Image, error) {
 	resp, err := axios.GetDefaultInstance().GetX(ctx, url)
 	if err != nil {
@@ -186,6 +225,8 @@ func InitImageFinder(ctx context.Context) error {
 			finder, err = newMinioImageFinder(item.Name, item.URI)
 		case schema.StorageCategoryGridfs:
 			finder, err = newMongoImageFinder(item.Name, item.URI)
+		case schema.StorageCategoryOSS:
+			finder, err = newOSSImageFinder(item.Name, item.URI)
 		}
 		// 初始化finder失败时，只输出日志
 		if err != nil {

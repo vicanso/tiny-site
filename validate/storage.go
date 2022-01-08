@@ -17,5 +17,5 @@ package validate
 func init() {
 	AddAlias("xStorageName", "ascii,min=1,max=20")
 	AddAlias("xStorageCategory", "ascii,min=1,max=10")
-	AddAlias("xStorageURI", "ascii,min=1,max=100")
+	AddAlias("xStorageURI", "ascii,min=1,max=500")
 }

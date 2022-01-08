@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	entgo.io/ent v0.9.1
+	github.com/aliyun/aliyun-oss-go-sdk v2.2.0+incompatible
 	github.com/disintegration/imaging v1.6.2
 	github.com/dop251/goja v0.0.0-20220104154337-b93494d0c5d9
 	github.com/dustin/go-humanize v1.0.0
@@ -57,6 +58,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/andres-erbsen/clock v0.0.0-20160526145045-9e14626cd129 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.9.0 // indirect
@@ -125,6 +127,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
 	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	google.golang.org/genproto v0.0.0-20211223182754-3ac035c7e7cb // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
