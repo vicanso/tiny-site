@@ -51,8 +51,11 @@ func (Storage) Fields() []ent.Field {
 				StorageCategoryGridfs,
 			).
 			Comment("存储类型"),
-		field.String("uri").
+		field.Text("uri").
 			NotEmpty().
 			Comment("存储连接串"),
+		field.Text("description").
+			Optional().
+			Comment("存储描述"),
 	}
 }

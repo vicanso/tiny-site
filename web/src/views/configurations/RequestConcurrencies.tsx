@@ -6,7 +6,10 @@ import ExLoading from "../../components/ExLoading";
 import { showError } from "../../helpers/util";
 import useCommonState, { commonListRequestInstance } from "../../states/common";
 import { ConfigCategory } from "../../states/configs";
-import { getDefaultFormRules, newRequireRule } from "../../components/ExConfigEditor";
+import {
+  getDefaultFormRules,
+  newRequireRule,
+} from "../../components/ExConfigEditor";
 
 export default defineComponent({
   name: "RequestConcurrencyConfigs",
@@ -69,7 +72,7 @@ export default defineComponent({
           }
           return true;
         },
-      }
+      },
     });
 
     return (

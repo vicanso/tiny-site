@@ -34,12 +34,20 @@ type ImageFilterParams struct {
 type ImageFinder func(ctx context.Context, params ...string) (*Image, error)
 
 type Image struct {
-	Type   string
-	Size   int
-	Width  int
+	// 图片类型
+	Type string
+	// 原始数据长度(字节)
+	OriginalSize int
+	// 处理后数据长度(字节)
+	Size int
+	// 图片宽度
+	Width int
+	// 图片高度
 	Height int
-	Data   []byte
-	img    image.Image
+	// 图片数据
+	Data []byte
+	// 图片数据转换的图像
+	img image.Image
 }
 
 func (i *Image) Image() (image.Image, error) {
@@ -58,13 +66,15 @@ func NewImageFromBytes(data []byte) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
+	size := len(data)
 	return &Image{
-		Type:   t,
-		Size:   len(data),
-		Width:  img.Bounds().Dx(),
-		Height: img.Bounds().Dy(),
-		Data:   data,
-		img:    img,
+		Type:         t,
+		Size:         size,
+		OriginalSize: size,
+		Width:        img.Bounds().Dx(),
+		Height:       img.Bounds().Dy(),
+		Data:         data,
+		img:          img,
 	}, nil
 }
 

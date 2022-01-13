@@ -28,6 +28,7 @@ import (
 	"github.com/vicanso/tiny-site/ent"
 	"github.com/vicanso/tiny-site/ent/bucket"
 	entImage "github.com/vicanso/tiny-site/ent/image"
+	"github.com/vicanso/tiny-site/log"
 	"github.com/vicanso/tiny-site/pipeline"
 	"github.com/vicanso/tiny-site/router"
 	"github.com/vicanso/tiny-site/util"
@@ -353,6 +354,12 @@ func (*imageCtrl) pipeline(c *elton.Context) error {
 	if err != nil {
 		return err
 	}
+	log.Info(c.Context()).
+		Strs("tasks", tasks).
+		Int("originalSize", img.OriginalSize).
+		Int("size", img.Size).
+		Int("percent", 100*img.Size/img.OriginalSize).
+		Msg("")
 	c.SetContentTypeByExt("." + img.Type)
 	c.BodyBuffer = bytes.NewBuffer(img.Data)
 	return nil

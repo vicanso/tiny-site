@@ -17,7 +17,6 @@ package storage
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net/url"
 	"strings"
@@ -170,8 +169,7 @@ func newOSSImageFinder(name, uri string) (ImageFinder, error) {
 	if len(accessKey) == 0 || len(secretKey) == 0 {
 		return nil, hes.New("access key and secret key can not be nil")
 	}
-	endpoint := fmt.Sprintf("%s://%s/", urlInfo.Scheme, urlInfo.Hostname())
-	client, err := oss.New(endpoint, accessKey, secretKey)
+	client, err := oss.New(urlInfo.Hostname(), accessKey, secretKey)
 	if err != nil {
 		return nil, err
 	}

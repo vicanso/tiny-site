@@ -6,7 +6,10 @@ import useCommonState, { commonListRouter } from "../../states/common";
 import { useMessage } from "naive-ui";
 import { showError } from "../../helpers/util";
 import ExLoading from "../../components/ExLoading";
-import { getDefaultFormRules, newRequireRule } from "../../components/ExConfigEditor";
+import {
+  getDefaultFormRules,
+  newRequireRule,
+} from "../../components/ExConfigEditor";
 
 export default defineComponent({
   name: "RouterConcurrencyConfigs",
@@ -75,5 +78,5 @@ export default defineComponent({
         rules={rules}
       />
     );
-  }
+  },
 });

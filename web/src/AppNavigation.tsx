@@ -24,7 +24,8 @@ const navigationOptions = [
     icon: renderIcon(Images),
     children: [
       {
-        label: "图片分组",
+        label: "图片存储",
+        key: names.storages,
       },
     ],
   },

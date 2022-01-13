@@ -1,7 +1,10 @@
 import { defineComponent } from "vue";
 import ExConfigEditorList from "../../components/ExConfigEditorList";
 import { ConfigCategory } from "../../states/configs";
-import { getDefaultFormRules, newRequireRule } from "../../components/ExConfigEditor";
+import {
+  getDefaultFormRules,
+  newRequireRule,
+} from "../../components/ExConfigEditor";
 
 export default defineComponent({
   name: "SignedKeyConfigs",

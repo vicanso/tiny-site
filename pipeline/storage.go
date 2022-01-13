@@ -32,11 +32,12 @@ func NewGetEntImage(bucket, name string) ImageJob {
 			return nil, err
 		}
 		return &storage.Image{
-			Type:   img.Type,
-			Size:   img.Size,
-			Width:  img.Width,
-			Height: img.Height,
-			Data:   img.Data,
+			OriginalSize: img.Size,
+			Type:         img.Type,
+			Size:         img.Size,
+			Width:        img.Width,
+			Height:       img.Height,
+			Data:         img.Data,
 		}, nil
 	}
 }

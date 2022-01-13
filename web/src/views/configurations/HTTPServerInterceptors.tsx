@@ -7,7 +7,10 @@ import ExLoading from "../../components/ExLoading";
 import { FormItemTypes, FormItem } from "../../components/ExForm";
 import ExConfigEditorList from "../../components/ExConfigEditorList";
 import { ConfigCategory } from "../../states/configs";
-import { getDefaultFormRules, newRequireRule } from "../../components/ExConfigEditor";
+import {
+  getDefaultFormRules,
+  newRequireRule,
+} from "../../components/ExConfigEditor";
 
 export default defineComponent({
   name: "HTTPServerInterceptorConfigs",

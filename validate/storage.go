@@ -18,4 +18,5 @@ func init() {
 	AddAlias("xStorageName", "ascii,min=1,max=20")
 	AddAlias("xStorageCategory", "ascii,min=1,max=10")
 	AddAlias("xStorageURI", "ascii,min=1,max=500")
+	AddAlias("xStorageDescription", "min=1,max=500")
 }

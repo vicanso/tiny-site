@@ -2,7 +2,10 @@ import { defineComponent } from "vue";
 import ExConfigEditorList from "../../components/ExConfigEditorList";
 import { ConfigCategory } from "../../states/configs";
 import { FormItem, FormItemTypes } from "../../components/ExForm";
-import { getDefaultFormRules, newRequireRule } from "../../components/ExConfigEditor";
+import {
+  getDefaultFormRules,
+  newRequireRule,
+} from "../../components/ExConfigEditor";
 
 export default defineComponent({
   name: "EmailConfigs",
@@ -17,7 +20,7 @@ export default defineComponent({
       },
     ];
     const rules = getDefaultFormRules({
-      "data": newRequireRule("邮箱地址不能为空"),
+      data: newRequireRule("邮箱地址不能为空"),
     });
     return (
       <ExConfigEditorList

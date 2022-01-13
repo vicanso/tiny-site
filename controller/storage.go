@@ -28,14 +28,16 @@ type storageCtrl struct{}
 
 type (
 	storageAddParams struct {
-		Name     string `json:"name" validate:"required,xStorageName"`
-		Category string `json:"category" validate:"required,xStorageCategory"`
-		URI      string `json:"uri" validate:"required,xStorageURI"`
+		Name        string `json:"name" validate:"required,xStorageName"`
+		Category    string `json:"category" validate:"required,xStorageCategory"`
+		URI         string `json:"uri" validate:"required,xStorageURI"`
+		Description string `json:"description" validate:"required,xStorageDescription"`
 	}
 	storageUpdateParams struct {
-		Name     string `json:"name" validate:"omitempty,xStorageName"`
-		Category string `json:"category" validate:"omitempty,xStorageCategory"`
-		URI      string `json:"uri" validate:"omitempty,xStorageURI"`
+		Name        string `json:"name" validate:"omitempty,xStorageName"`
+		Category    string `json:"category" validate:"omitempty,xStorageCategory"`
+		URI         string `json:"uri" validate:"omitempty,xStorageURI"`
+		Description string `json:"description" validate:"omitempty,xStorageDescription"`
 	}
 )
 
@@ -69,6 +71,11 @@ func init() {
 		shouldBeAdmin,
 		ctrl.update,
 	)
+	g.GET(
+		"/v1/{id}",
+		shouldBeAdmin,
+		ctrl.findByID,
+	)
 }
 
 func (params *storageAddParams) save(ctx context.Context) (*ent.Storage, error) {
@@ -76,6 +83,7 @@ func (params *storageAddParams) save(ctx context.Context) (*ent.Storage, error) 
 		SetName(params.Name).
 		SetCategory(storage.Category(params.Category)).
 		SetURI(params.URI).
+		SetDescription(params.Description).
 		Save(ctx)
 }
 
@@ -89,6 +97,9 @@ func (params *storageUpdateParams) update(ctx context.Context, id int) (*ent.Sto
 	}
 	if params.URI != "" {
 		update.SetURI(params.URI)
+	}
+	if params.Description != "" {
+		update.SetDescription(params.Description)
 	}
 	return update.Save(ctx)
 }
@@ -109,7 +120,11 @@ func (*storageCtrl) add(c *elton.Context) error {
 }
 
 func (*storageCtrl) list(c *elton.Context) error {
+	params := listParams{
+		Order: "-updatedAt",
+	}
 	storages, err := getStorageClient().Query().
+		Order(params.GetOrders()...).
 		All(c.Context())
 
 	if err != nil {
@@ -136,5 +151,18 @@ func (*storageCtrl) update(c *elton.Context) error {
 		return err
 	}
 	c.Body = result
+	return nil
+}
+
+func (*storageCtrl) findByID(c *elton.Context) error {
+	id, err := getIDFromParams(c)
+	if err != nil {
+		return err
+	}
+	storage, err := getStorageClient().Get(c.Context(), id)
+	if err != nil {
+		return err
+	}
+	c.Body = storage
 	return nil
 }
