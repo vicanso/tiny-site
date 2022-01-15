@@ -19,6 +19,7 @@ import (
 	"context"
 	"io"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -159,7 +160,7 @@ func newMongoImageFinder(name, uri string) (ImageFinder, error) {
 	}, nil
 }
 
-func newOSSImageFinder(name, uri string) (ImageFinder, error) {
+func newOSSImageFinder(_, uri string) (ImageFinder, error) {
 	urlInfo, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
@@ -174,7 +175,7 @@ func newOSSImageFinder(name, uri string) (ImageFinder, error) {
 		return nil, err
 	}
 
-	return func(ctx context.Context, params ...string) (*Image, error) {
+	return func(_ context.Context, params ...string) (*Image, error) {
 		if len(params) != 2 {
 			return nil, hes.New("oss params is invalid")
 		}
@@ -215,6 +216,10 @@ func InitImageFinder(ctx context.Context) error {
 	}
 	for _, item := range result {
 		var finder ImageFinder
+		// 如果以$开头，则从env中获取
+		if strings.HasPrefix(item.URI, "$") {
+			item.URI = os.Getenv(item.URI[1:])
+		}
 		var err error
 		switch item.Category {
 		case schema.StorageCategoryHTTP:
