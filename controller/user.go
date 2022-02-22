@@ -281,6 +281,12 @@ func init() {
 		ctrl.addUserAction,
 	)
 
+	g.GET(
+		"/v1/accounts",
+		shouldBeLogin,
+		ctrl.filterAccount,
+	)
+
 	// 获取用户角色分组
 	noneSessionGroup.GET(
 		"/v1/roles",
@@ -915,5 +921,27 @@ func (ctrl userCtrl) addUserAction(c *elton.Context) error {
 	c.Body = map[string]int{
 		"count": count,
 	}
+	return nil
+}
+
+func (userCtrl) filterAccount(c *elton.Context) error {
+	keyword := c.QueryParam("keyword")
+
+	q := getUserClient().Query()
+	if len(keyword) != 0 {
+		q.Where(
+			user.AccountContains(keyword),
+		)
+	}
+	users, err := q.Limit(10).
+		Select("account").All(c.Context())
+	if err != nil {
+		return err
+	}
+	accounts := make([]string, len(users))
+	for index, item := range users {
+		accounts[index] = item.Account
+	}
+	c.Body = accounts
 	return nil
 }

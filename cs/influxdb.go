@@ -37,6 +37,8 @@ const (
 	MeasurementEntStats = "entStats"
 	// MeasurementEntOP ent的操作记录
 	MeasurementEntOP = "entOP"
+	// MeasurementInfluxdbStats influxdb统计
+	MeasurementInfluxdbStats = "influxdbStats"
 	// MeasurementHTTPError http响应出错统计
 	MeasurementHTTPError = "httpError"
 	// MeasurementUserTracker 用户行为记录

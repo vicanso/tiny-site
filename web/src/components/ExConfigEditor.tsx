@@ -86,6 +86,15 @@ export function newRequireRule(message: string): FormItemRule {
   };
 }
 
+export function newArrayRequireRule(message: string): FormItemRule {
+  return {
+    type: "array",
+    required: true,
+    message: message,
+    trigger: "blur",
+  };
+}
+
 export function getDefaultFormRules(extra?: FormRules): FormRules {
   const defaultRules: FormRules = {
     [FormItemKey.name]: newRequireRule("配置名称不能为空"),

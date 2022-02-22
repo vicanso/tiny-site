@@ -19,7 +19,6 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/shirou/gopsutil/v3/process"
 	performance "github.com/vicanso/go-performance"
 )
 
@@ -42,13 +41,13 @@ type (
 		Concurrency           int32 `json:"concurrency"`
 		RequestProcessedTotal int64 `json:"requestProcessedTotal"`
 		performance.CPUMemory
-		HTTPServerConnStats *performance.ConnStats        `json:"httpServerConnStats"`
-		IOCountersStat      *process.IOCountersStat       `json:"ioCountersStat"`
-		ConnStat            *performance.ConnectionsCount `json:"connStat"`
-		NumCtxSwitchesStat  *process.NumCtxSwitchesStat   `json:"numCtxSwitchesStat"`
-		PageFaultsStat      *process.PageFaultsStat       `json:"pageFaultsStat"`
-		NumFds              int                           `json:"numFds"`
-		OpenFilesStats      []process.OpenFilesStat       `json:"openFilesStats"`
+		HTTPServerConnStats *performance.ConnStats          `json:"httpServerConnStats"`
+		IOCountersStat      *performance.IOCountersStat     `json:"ioCountersStat"`
+		ConnStat            *performance.ConnectionsCount   `json:"connStat"`
+		NumCtxSwitchesStat  *performance.NumCtxSwitchesStat `json:"numCtxSwitchesStat"`
+		PageFaultsStat      *performance.PageFaultsStat     `json:"pageFaultsStat"`
+		NumFdsStat          *performance.NumFdsStat         `json:"numFdsStat"`
+		OpenFilesStats      *performance.OpenFilesStat      `json:"openFilesStats"`
 	}
 )
 
@@ -57,9 +56,17 @@ func GetPerformance(ctx context.Context) *Performance {
 	ioCountersStat, _ := performance.IOCounters(ctx)
 	connStat, _ := performance.ConnectionsStat(ctx)
 	numCtxSwitchesStat, _ := performance.NumCtxSwitches(ctx)
-	numFds, _ := performance.NumFds(ctx)
+
 	pageFaults, _ := performance.PageFaults(ctx)
 	openFilesStats, _ := performance.OpenFiles(ctx)
+	// fd 可以通过open files获取，减少一次查询
+	var numFdsStat *performance.NumFdsStat
+	if openFilesStats != nil {
+		numFdsStat = &performance.NumFdsStat{
+			Fds:  int32(len(openFilesStats.OpenFiles)),
+			Took: openFilesStats.Took,
+		}
+	}
 	httpServerConnStats := httpServerConnStats.Stats()
 	return &Performance{
 		Concurrency:           GetConcurrency(),
@@ -69,7 +76,7 @@ func GetPerformance(ctx context.Context) *Performance {
 		IOCountersStat:        ioCountersStat,
 		ConnStat:              connStat,
 		NumCtxSwitchesStat:    numCtxSwitchesStat,
-		NumFds:                int(numFds),
+		NumFdsStat:            numFdsStat,
 		PageFaultsStat:        pageFaults,
 		OpenFilesStats:        openFilesStats,
 	}

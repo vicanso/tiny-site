@@ -7,6 +7,7 @@ import {
   USERS_LOGINS,
   USERS_ID,
   USERS_ME_DETAIL,
+  USERS_ACCOUNTS,
 } from "../constants/url";
 // eslint-disable-next-line
 // @ts-ignore
@@ -302,6 +303,15 @@ export async function userUpdateMe(
   params: Record<string, unknown>
 ): Promise<void> {
   await request.patch(USERS_ME, params);
+}
+
+export async function userListAccount(keyword: string): Promise<string[]> {
+  const { data } = await request.get<string[]>(USERS_ACCOUNTS, {
+    params: {
+      keyword,
+    },
+  });
+  return data;
 }
 
 // 仅读用户state

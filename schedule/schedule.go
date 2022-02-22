@@ -21,7 +21,7 @@ import (
 
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
-	"github.com/shirou/gopsutil/v3/process"
+	"github.com/vicanso/go-performance"
 	"github.com/vicanso/tiny-site/cs"
 	"github.com/vicanso/tiny-site/email"
 	"github.com/vicanso/tiny-site/helper"
@@ -47,6 +47,7 @@ func init() {
 	_, _ = c.AddFunc("@every 1m", configRefresh)
 	_, _ = c.AddFunc("@every 1m", redisStats)
 	_, _ = c.AddFunc("@every 1m", entStats)
+	_, _ = c.AddFunc("@every 1m", influxdbStats)
 	_, _ = c.AddFunc("@every 30s", cpuUsageStats)
 	_, _ = c.AddFunc("@every 1m", performanceStats)
 	_, _ = c.AddFunc("@every 1m", httpInstanceStats)
@@ -127,6 +128,21 @@ func cpuUsageStats() {
 	})
 }
 
+// influxdbStats influxdb统计
+func influxdbStats() {
+	doStatsTask("influxdb stats", func() map[string]interface{} {
+		db := helper.GetInfluxDB()
+		writeCount := db.GetAndResetWriteCount()
+		writtingCount := db.GetWrittingCount()
+		fields := map[string]interface{}{
+			cs.FieldProcessing: writtingCount,
+			cs.FieldCount:      writeCount,
+		}
+		db.Write(cs.MeasurementInfluxdbStats, nil, fields)
+		return fields
+	})
+}
+
 // prevMemFrees 上一次 memory objects 释放的数量
 var prevMemFrees uint64
 
@@ -140,13 +156,13 @@ var prevNumGC uint32
 var prevPauseTotal time.Duration
 
 // 上一次的 io counter记录
-var prevIOCountersStat = &process.IOCountersStat{}
+var prevIOCountersStat = &performance.IOCountersStat{}
 
 // 上一次context切换记录
-var prevNumCtxSwitchesStat = &process.NumCtxSwitchesStat{}
+var prevNumCtxSwitchesStat = &performance.NumCtxSwitchesStat{}
 
 // 上一次的page faults记录
-var prevPageFaultsStat = &process.PageFaultsStat{}
+var prevPageFaultsStat = &performance.PageFaultsStat{}
 
 const mb = 1024 * 1024
 
@@ -223,6 +239,10 @@ func performanceStats() {
 			count := make(map[string]string)
 
 			for k, v := range data.ConnStat.Status {
+				// 如果该状态下对应的连接大于0，则记录此连接数
+				if v > 0 {
+					fields[cs.FieldConnTotal+k] = v
+				}
 				count[k] = strconv.Itoa(v)
 			}
 			for k, v := range data.ConnStat.RemoteAddr {
@@ -253,10 +273,14 @@ func performanceStats() {
 		}
 
 		// fd 相关
-		fields[cs.FieldNumFds] = data.NumFds
+		if data.NumFdsStat != nil {
+			fields[cs.FieldNumFds] = data.NumFdsStat.Fds
+
+		}
 
 		// open files的统计
-		if len(data.OpenFilesStats) != 0 {
+		if data.OpenFilesStats != nil &&
+			len(data.OpenFilesStats.OpenFiles) != 0 {
 			log.Info(context.Background()).
 				Str("category", "openFiles").
 				Dict("stat", log.Struct(data.OpenFilesStats)).

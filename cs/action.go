@@ -36,6 +36,8 @@ const (
 
 	// ActionBucketCreate add bucket
 	ActionBucketAdd = "addBucket"
+	// ActionBucketUpdate update bucket
+	ActionBucketUpdate = "updateBucket"
 	// ActionImageAdd add image
 	ActionImageAdd = "addImage"
 

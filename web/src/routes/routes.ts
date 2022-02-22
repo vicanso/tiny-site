@@ -27,6 +27,7 @@ export const names = {
   emails: "emails",
   httpServerInterceptors: "httpServerInterceptors",
   storages: "storages",
+  buckets: "buckets",
 };
 
 export const routes: Router[] = [
@@ -129,5 +130,10 @@ export const routes: Router[] = [
     path: "/storages",
     name: names.storages,
     component: () => import("../views/storage/Storages"),
+  },
+  {
+    path: "/buckets",
+    name: names.buckets,
+    component: () => import("../views/bucket/Buckets"),
   },
 ];

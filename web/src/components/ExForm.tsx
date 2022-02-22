@@ -18,6 +18,7 @@ import { set } from "lodash-es";
 import { Value } from "naive-ui/lib/select/src/interface";
 import { Component, defineComponent, PropType, ref } from "vue";
 import { showError, durationToSeconds } from "../helpers/util";
+import ExAccountSelect from "./ExAccountSelect";
 
 export interface FormItem {
   name: string;
@@ -41,6 +42,7 @@ export enum FormItemTypes {
   InputDuration = "inputDuration",
   TextArea = "textarea",
   Blank = "blank",
+  AccountSelect = "accountSelect",
 }
 
 export default defineComponent({
@@ -133,6 +135,15 @@ export default defineComponent({
           break;
         case FormItemTypes.Select:
           component = createSelect(item, false);
+          break;
+        case FormItemTypes.AccountSelect:
+          component = (
+            <ExAccountSelect
+              placeholder={item.placeholder}
+              defaultValue={item.defaultValue as Value}
+              onUpdateValue={(value) => set(params, item.key, value)}
+            />
+          );
           break;
         case FormItemTypes.DateTime:
           {

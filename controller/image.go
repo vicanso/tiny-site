@@ -42,9 +42,15 @@ type (
 		// bucket的名称
 		Name string `json:"name" validate:"required,xImageBucket"`
 		// 拥有者
-		Owners []string `json:"owners" validate:"omitempty,dive,xUserAccount"`
+		Owners []string `json:"owners" validate:"required,dive,xUserAccount"`
 		// 描述
 		Description string `json:"description" validate:"required,xImageDescription"`
+	}
+	bucketUpdateParams struct {
+		// 拥有者
+		Owners []string `json:"owners" validate:"omitempty,dive,xUserAccount"`
+		// 描述
+		Description string `json:"description" validate:"omitempty,xImageDescription"`
 	}
 	bucketListParams struct {
 		listParams
@@ -98,6 +104,11 @@ func init() {
 		"/v1/buckets",
 		newTrackerMiddleware(cs.ActionBucketAdd),
 		ctrl.addBucket,
+	)
+	g.PATCH(
+		"/v1/buckets/{id}",
+		newTrackerMiddleware(cs.ActionBucketUpdate),
+		ctrl.updateBucket,
 	)
 
 	g.POST(
@@ -192,6 +203,26 @@ func (params *imageListParams) count(ctx context.Context) (int, error) {
 	return query.Count(ctx)
 }
 
+func (params *bucketUpdateParams) updateOneID(ctx context.Context, id int, creator string) (*ent.Bucket, error) {
+	result, err := getBucketClient().Query().Where(
+		bucket.IDEQ(id),
+	).First(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if result.Creator != creator {
+		return nil, hes.NewWithExcpetion("Forbidden to modify bucket")
+	}
+	updateOne := getBucketClient().UpdateOneID(id)
+	if params.Description != "" {
+		updateOne.SetDescription(params.Description)
+	}
+	if len(params.Owners) != 0 {
+		updateOne.SetOwners(params.Owners)
+	}
+	return updateOne.Save(ctx)
+}
+
 func validateBucketForUser(ctx context.Context, bucketName, account string) error {
 	if bucketName == "" {
 		return hes.New("bucket名称不能为空")
@@ -225,6 +256,25 @@ func (*imageCtrl) addBucket(c *elton.Context) error {
 		return err
 	}
 	c.Created(bucket)
+	return nil
+}
+
+func (*imageCtrl) updateBucket(c *elton.Context) error {
+	id, err := getIDFromParams(c)
+	if err != nil {
+		return err
+	}
+	params := bucketUpdateParams{}
+	err = validateBody(c, &params)
+	if err != nil {
+		return err
+	}
+	us := getUserSession(c)
+	result, err := params.updateOneID(c.Context(), id, us.MustGetInfo().Account)
+	if err != nil {
+		return err
+	}
+	c.Body = result
 	return nil
 }
 

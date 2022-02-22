@@ -65,7 +65,7 @@ function addRequestStats(
     data.url = config.url;
     data.data = config.data;
     if (config.headers) {
-      const value: string = config.headers[requestedAt];
+      const value = config.headers[requestedAt];
       data.use = Date.now() - Number(value);
     }
   }

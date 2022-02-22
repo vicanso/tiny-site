@@ -8,6 +8,7 @@ export const USERS_LOGIN = "/users/v1/me/login";
 export const USERS_INNER_LOGIN = "/users/inner/v1/me/login";
 // 用户列表
 export const USERS = "/users/v1";
+export const USERS_ACCOUNTS = "/users/v1/accounts";
 // 用户登录记录
 export const USERS_LOGINS = "/users/v1/login-records";
 export const USERS_ID = "/users/v1/:id";
@@ -48,3 +49,9 @@ export const ADMINS_CACHE_ID = "/@admin/v1/caches/:key";
 // 存储相关接口
 export const STORAGES = "/storages/v1";
 export const STORAGES_ID = "/storages/v1/:id";
+
+// 图片相关接口
+export const IMAGES = "/images/v1";
+export const IMAGES_BUCKETS = "/images/v1/buckets";
+export const IMAGES_BUCKETS_ID = "/images/v1/buckets/:id";
+export const IMAGES_THUMBNAILS = "/images/v1/thumbnails/:bucket/:name";

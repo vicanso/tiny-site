@@ -158,6 +158,7 @@ func Parse(tasks []string, header http.Header) ([]ImageJob, error) {
 		case "fillResize":
 			fn = parseFillResize
 		default:
+			// 从storage中加载图片
 			fn = parseFinder
 		}
 		if fn == nil {
