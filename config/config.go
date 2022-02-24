@@ -135,7 +135,7 @@ type (
 		// 间隔提交时长
 		FlushInterval time.Duration `default:"30s" validate:"required"`
 		// 最大正在写入量
-		MaxWrittingPoints int `default:"20" validate:"required"`
+		MaxWritingPoints int `default:"20" validate:"required"`
 		// 是否启用gzip
 		Gzip bool
 		// 是否禁用
@@ -371,22 +371,22 @@ func MustGetInfluxdbConfig() *InfluxdbConfig {
 	if flushIntervalValue != "" {
 		flushInterval = cast.ToDuration(flushIntervalValue)
 	}
-	maxWrittingPoints := 0
-	maxWrittingPointsValue := query.Get("maxWrittingPoints")
-	if maxWrittingPointsValue != "" {
-		maxWrittingPoints = cast.ToInt(maxWrittingPointsValue)
+	maxWritingPoints := 0
+	maxWritingPointsValue := query.Get("maxWritingPoints")
+	if maxWritingPointsValue != "" {
+		maxWritingPoints = cast.ToInt(maxWritingPointsValue)
 	}
 
 	influxdbConfig := &InfluxdbConfig{
-		URI:               fmt.Sprintf("%s://%s", urlInfo.Scheme, urlInfo.Host),
-		Bucket:            query.Get("bucket"),
-		Org:               query.Get("org"),
-		Token:             query.Get("token"),
-		BatchSize:         batchSize,
-		FlushInterval:     flushInterval,
-		MaxWrittingPoints: maxWrittingPoints,
-		Gzip:              cast.ToBool(query.Get("gzip")),
-		Disabled:          cast.ToBool(query.Get("disabled")),
+		URI:              fmt.Sprintf("%s://%s", urlInfo.Scheme, urlInfo.Host),
+		Bucket:           query.Get("bucket"),
+		Org:              query.Get("org"),
+		Token:            query.Get("token"),
+		BatchSize:        batchSize,
+		FlushInterval:    flushInterval,
+		MaxWritingPoints: maxWritingPoints,
+		Gzip:             cast.ToBool(query.Get("gzip")),
+		Disabled:         cast.ToBool(query.Get("disabled")),
 	}
 	mustValidate(influxdbConfig)
 	return influxdbConfig

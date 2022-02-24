@@ -133,9 +133,9 @@ func influxdbStats() {
 	doStatsTask("influxdb stats", func() map[string]interface{} {
 		db := helper.GetInfluxDB()
 		writeCount := db.GetAndResetWriteCount()
-		writtingCount := db.GetWrittingCount()
+		writingCount := db.GetWritingCount()
 		fields := map[string]interface{}{
-			cs.FieldProcessing: writtingCount,
+			cs.FieldProcessing: writingCount,
 			cs.FieldCount:      writeCount,
 		}
 		db.Write(cs.MeasurementInfluxdbStats, nil, fields)

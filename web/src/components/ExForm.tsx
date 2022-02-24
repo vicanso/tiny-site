@@ -19,6 +19,7 @@ import { Value } from "naive-ui/lib/select/src/interface";
 import { Component, defineComponent, PropType, ref } from "vue";
 import { showError, durationToSeconds } from "../helpers/util";
 import ExAccountSelect from "./ExAccountSelect";
+import ExBucketSelect from "./ExBucketSelect";
 
 export interface FormItem {
   name: string;
@@ -31,6 +32,7 @@ export interface FormItem {
   // TODO 确认是否有其它方式表示
   // eslint-disable-next-line
   options?: any[];
+  component?: Component;
 }
 
 export enum FormItemTypes {
@@ -43,6 +45,7 @@ export enum FormItemTypes {
   TextArea = "textarea",
   Blank = "blank",
   AccountSelect = "accountSelect",
+  BucketSelect = "bucketSelect",
 }
 
 export default defineComponent({
@@ -145,6 +148,15 @@ export default defineComponent({
             />
           );
           break;
+        case FormItemTypes.BucketSelect:
+          component = (
+            <ExBucketSelect
+              placeholder={item.placeholder}
+              defaultValue={item.defaultValue as Value}
+              onUpdateValue={(value) => set(params, item.key, value)}
+            />
+          );
+          break;
         case FormItemTypes.DateTime:
           {
             let defaultValue = null;
@@ -225,7 +237,7 @@ export default defineComponent({
           }
           break;
         default:
-          component = (
+          component = item.component || (
             <NInput
               disabled={item.disabled || false}
               placeholder={item.placeholder}

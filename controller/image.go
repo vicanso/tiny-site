@@ -54,6 +54,9 @@ type (
 	}
 	bucketListParams struct {
 		listParams
+
+		// 关键字
+		Keyword string `json:"keyword" validate:"omitempty,xKeyword"`
 	}
 	imageAddParams struct {
 		Bucket      string `json:"bucket" validate:"required,xImageBucket"`
@@ -134,12 +137,19 @@ func init() {
 
 }
 
+func (params *bucketListParams) where(query *ent.BucketQuery) *ent.BucketQuery {
+	if len(params.Keyword) != 0 {
+		query.Where(bucket.NameContains(params.Keyword))
+	}
+	return query
+}
+
 func (params *bucketListParams) queryAll(ctx context.Context) ([]*ent.Bucket, error) {
 	query := getBucketClient().Query()
 	query.Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
 		Order(params.GetOrders()...)
-	return query.All(ctx)
+	return params.where(query).All(ctx)
 }
 
 func (params *bucketListParams) count(ctx context.Context) (int, error) {
@@ -308,6 +318,7 @@ func (*imageCtrl) addImage(c *elton.Context) error {
 		Bucket: c.Request.FormValue("bucket"),
 		Name:   c.Request.FormValue("name"),
 		Tags:   c.Request.FormValue("tags"),
+		Description: c.Request.FormValue("description"),
 	}
 	err := validate.Struct(&params)
 	if err != nil {

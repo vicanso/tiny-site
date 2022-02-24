@@ -31,12 +31,12 @@ import (
 
 type (
 	InfluxDB struct {
-		client            influxdb2.Client
-		writer            influxdbAPI.WriteAPI
-		config            *config.InfluxdbConfig
-		writeCount        atomic.Int64
-		writtingCount     atomic.Int32
-		maxWrittingPoints int32
+		client           influxdb2.Client
+		writer           influxdbAPI.WriteAPI
+		config           *config.InfluxdbConfig
+		writeCount       atomic.Int64
+		writingCount     atomic.Int32
+		maxWritingPoints int32
 	}
 )
 
@@ -72,10 +72,10 @@ func mustNewInfluxDB() *InfluxDB {
 	c := influxdb2.NewClientWithOptions(influxdbConfig.URI, influxdbConfig.Token, opts)
 	writer := c.WriteAPI(influxdbConfig.Org, influxdbConfig.Bucket)
 	db := &InfluxDB{
-		client:            c,
-		writer:            writer,
-		config:            influxdbConfig,
-		maxWrittingPoints: int32(influxdbConfig.MaxWrittingPoints),
+		client:           c,
+		writer:           writer,
+		config:           influxdbConfig,
+		maxWritingPoints: int32(influxdbConfig.MaxWritingPoints),
 	}
 	go newInfluxdbErrorLogger(writer, db)
 
@@ -143,8 +143,8 @@ func (db *InfluxDB) GetAndResetWriteCount() int64 {
 	return db.writeCount.Swap(0)
 }
 
-func (db *InfluxDB) GetWrittingCount() int32 {
-	return db.writtingCount.Load()
+func (db *InfluxDB) GetWritingCount() int32 {
+	return db.writingCount.Load()
 }
 
 // Write 写入数据
@@ -165,12 +165,12 @@ func (db *InfluxDB) Write(measurement string, tags map[string]string, fields map
 	if hostname != "" && fields["hostname"] == nil {
 		fields["hostname"] = hostname
 	}
-	value := db.writtingCount.Inc()
-	defer db.writtingCount.Dec()
+	value := db.writingCount.Inc()
+	defer db.writingCount.Dec()
 	// 由于write point有可能由于上一次batch提交处理中
 	// 而新的batch又满了会导致卡住
 	// 因此增加处理请求量超过20时，直接不再写统计
-	if value > db.maxWrittingPoints {
+	if value > db.maxWritingPoints {
 		log.Error(context.Background()).
 			Int32("count", value).
 			Msg("too many points are waiting")

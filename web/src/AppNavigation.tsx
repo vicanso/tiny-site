@@ -24,8 +24,12 @@ const navigationOptions = [
     icon: renderIcon(Images),
     children: [
       {
-        label: "图片Bucket",
+        label: "Bucket",
         key: names.buckets,
+      },
+      {
+        label: "图片",
+        key: names.images,
       },
       {
         label: "存储服务",

@@ -35,6 +35,7 @@ func NewStats() elton.Handler {
 			// 此处记录的session id，需要从客户登录记录中获取对应的session id
 			// us := service.NewUserSession(c)
 			sid := util.GetSessionID(c)
+			requestBodySize := len(c.RequestBody)
 			// 由客户端设置的uuid
 			// zap.String("uuid", c.GetRequestHeader("X-UUID")),
 			log.Info(c.Context()).
@@ -47,6 +48,7 @@ func NewStats() elton.Handler {
 				Int("status", info.Status).
 				Uint32("connecting", info.Connecting).
 				Str("latency", info.Latency.String()).
+				Str("requestBodySize", humanize.Bytes(uint64(requestBodySize))).
 				Str("size", humanize.Bytes(uint64(info.Size))).
 				Int("bytes", info.Size).
 				Msg("")
@@ -61,6 +63,7 @@ func NewStats() elton.Handler {
 				cs.FieldURI:        info.URI,
 				cs.FieldStatus:     info.Status,
 				cs.FieldLatency:    int(info.Latency.Milliseconds()),
+				cs.FieldBodySize:   requestBodySize,
 				cs.FieldSize:       info.Size,
 				cs.FieldProcessing: info.Connecting,
 			}

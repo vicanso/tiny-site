@@ -28,6 +28,7 @@ export const names = {
   httpServerInterceptors: "httpServerInterceptors",
   storages: "storages",
   buckets: "buckets",
+  images: "images",
 };
 
 export const routes: Router[] = [
@@ -135,5 +136,10 @@ export const routes: Router[] = [
     path: "/buckets",
     name: names.buckets,
     component: () => import("../views/bucket/Buckets"),
+  },
+  {
+    path: "/images",
+    name: names.images,
+    component: () => import("../views/image/Images"),
   },
 ];

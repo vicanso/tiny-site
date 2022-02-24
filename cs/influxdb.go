@@ -66,7 +66,9 @@ const (
 	// TagStep 用户操作的步骤
 	TagStep = "step"
 	// TagResult 操作结果
-	TagResult = "result"
+	// 由于influxdb中会使用result表示查询结果，因此如果使用result会导致展示时多了一个属性，
+	// 因此调整名称
+	TagResult = "rslt"
 	// TagSchema 数据库的schema
 	TagSchema = "schema"
 	// TagOP 数据库的操作
@@ -143,6 +145,8 @@ const (
 	FieldCount = "count"
 	// FieldSize 大小
 	FieldSize = "size"
+	// FieldBodySize 内容大小
+	FieldBodySize = "bodySize"
 	// FieldHits 命中数量
 	FieldHits = "hits"
 	// FieldMisses miss数量

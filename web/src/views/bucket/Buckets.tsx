@@ -51,7 +51,7 @@ function getColumns(): TableColumn[] {
   ];
 }
 
-export function getFormItems(params: {
+function getFormItems(params: {
   name?: string;
   owners?: string[];
   description?: string;
@@ -79,7 +79,7 @@ export function getFormItems(params: {
       defaultValue: params.description,
       span: 24,
       type: FormItemTypes.TextArea,
-      placeholder: "请输入该存储bucket的描述",
+      placeholder: "请输入该图片bucket的描述",
     },
   ];
 }

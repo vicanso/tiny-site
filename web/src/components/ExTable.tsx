@@ -23,6 +23,7 @@ import { css } from "@linaria/core";
 import { padding } from "../constants/style";
 import { getDaysAgo, showError, today, yesterday } from "../helpers/util";
 import { FormItemTypes } from "./ExForm";
+import ExBucketSelect from "./ExBucketSelect";
 
 interface Filter {
   type?: string;
@@ -272,6 +273,17 @@ export default defineComponent({
       currentSpan += span;
       let component: Component;
       switch (filterItem.type) {
+        case FormItemTypes.BucketSelect:
+          component = (
+            <ExBucketSelect
+              defaultValue={filterItem.defaultValue as Value}
+              placeholder={filterItem.placeholder}
+              onUpdateValue={(value) => {
+                filterParams[filterItem.key] = value;
+              }}
+            />
+          );
+          break;
         case FormItemTypes.Select:
           component = (
             <NSelect

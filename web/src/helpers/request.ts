@@ -5,6 +5,13 @@ import HTTPError from "./http-error";
 import { isDevelopment } from "../constants/env";
 // import { httpRequests } from "../store";
 
+export function getAPIUrl(url?: string) {
+  if (isDevelopment()) {
+    return `/api${url}`;
+  }
+  return url;
+}
+
 const requestedAt = "X-Requested-At";
 // 最小压缩长度
 const compressMinLength = 10 * 1024;
@@ -40,9 +47,7 @@ request.interceptors.request.use(
         }
       });
     }
-    if (isDevelopment()) {
-      config.url = `/api${config.url}`;
-    }
+    config.url = getAPIUrl(config.url);
     if (config.headers) {
       config.headers[requestedAt] = `${Date.now()}`;
     }
