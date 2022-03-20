@@ -1,0 +1,6 @@
+run:
+  timeout: 2m
+  skip-dirs:
+  - web
+  build-tags:
+  - codeanalysis

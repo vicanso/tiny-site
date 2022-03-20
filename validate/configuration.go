@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,29 +14,9 @@
 
 package validate
 
-import (
-	"github.com/vicanso/tiny-site/cs"
-)
-
 func init() {
 	// 应用配置名称
-	Add("xConfigName", func(i interface{}, _ interface{}) bool {
-		return checkAlphanumericStringLength(i, 2, 20)
-	})
-	Add("xConfigCategory", func(i interface{}, _ interface{}) bool {
-		return checkAlphanumericStringLength(i, 2, 20)
-	})
-	Add("xConfigData", func(i interface{}, _ interface{}) bool {
-		return checkStringLength(i, 1, 500)
-	})
-	Add("xConfigNames", func(i interface{}, _ interface{}) bool {
-		return checkAlphanumericStringLength(i, 2, 100)
-	})
-	Add("xConfigStatus", func(i interface{}, _ interface{}) bool {
-		value, ok := i.(int)
-		if !ok {
-			return false
-		}
-		return value == cs.ConfigEnabled || value == cs.ConfigDiabled
-	})
+	AddAlias("xConfigurationName", "min=2,max=20")
+	AddAlias("xConfigurationCategory", "alphanum,min=2,max=30")
+	AddAlias("xConfigurationData", "min=0,max=500")
 }

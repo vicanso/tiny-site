@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,9 +14,7 @@
 
 package util
 
-import (
-	"github.com/vicanso/tiny-site/config"
-)
+import "github.com/vicanso/tiny-site/config"
 
 // IsDevelopment 判断是否开发环境
 func IsDevelopment() bool {

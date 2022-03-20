@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ package middleware
 
 import (
 	"github.com/vicanso/elton"
+	"github.com/vicanso/tiny-site/service"
 	"github.com/vicanso/tiny-site/util"
 )
 
@@ -23,12 +24,33 @@ const (
 	xResponseID = "X-Response-Id"
 )
 
+type EntryFunc func() int32
+type ExitFunc func() int32
+
 // NewEntry create an entry middleware
-func NewEntry() elton.Handler {
-	return func(c *elton.Context) (err error) {
-		// 生成context id
-		c.ID = util.RandomString(6)
-		c.SetHeader(xResponseID, c.ID)
+func NewEntry(entryFn EntryFunc, exitFn ExitFunc) elton.Handler {
+	return func(c *elton.Context) error {
+		// 如果请求头指定connection: close
+		// server conn stats中无法判断现在处理请求事件
+		// 处理完成时，需要手工将现在处理的连接数-1
+		if c.GetRequestHeader("Connection") == "close" {
+			defer service.DecHTTPConnProcessing()
+		}
+		entryFn()
+		defer exitFn()
+		if c.ID != "" {
+			c.SetHeader(xResponseID, c.ID)
+			c.WithContext(util.SetTraceID(c.Context(), c.ID))
+		}
+		deviceID := util.GetTrackID(c)
+		if deviceID != "" {
+			c.WithContext(util.SetDeviceID(c.Context(), deviceID))
+		}
+
+		// 测试环境返回x-forwarded-for，方便确认链路
+		if !util.IsProduction() {
+			c.SetHeader(elton.HeaderXForwardedFor, c.GetRequestHeader(elton.HeaderXForwardedFor))
+		}
 
 		// 设置所有的请求响应默认都为no cache
 		c.NoCache()

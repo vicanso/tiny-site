@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,24 +18,24 @@ import (
 	"net/http"
 
 	"github.com/vicanso/elton"
-	"github.com/vicanso/tiny-site/service"
 	"github.com/vicanso/hes"
 )
 
 var (
-	errIPNotAllow = &hes.Error{
+	ErrIPNotAllow = &hes.Error{
 		StatusCode: http.StatusBadRequest,
 		Message:    "request is forbidden",
 		Category:   "IB",
 	}
 )
 
-// NewIPBlock create a new block ip middleware
-func NewIPBlock() elton.Handler {
-	return func(c *elton.Context) (err error) {
-		if service.IsBlockIP(c.RealIP()) {
-			err = errIPNotAllow
-			return
+type IPBlockFunc func(string) bool
+
+// NewIPBlocker create a new block ip middleware
+func NewIPBlocker(fn IPBlockFunc) elton.Handler {
+	return func(c *elton.Context) error {
+		if fn(c.RealIP()) {
+			return ErrIPNotAllow
 		}
 		return c.Next()
 	}

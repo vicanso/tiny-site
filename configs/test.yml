@@ -1,8 +1,0 @@
-
-# 仅需要添加与default不相同的配置
-# 测试环境配置
-
-# postgres postgres配置
-postgres:
-  user: postgres
-  password: postgres

@@ -1,0 +1,69 @@
+# 系统基本配置
+basic:
+  name: tiny
+  # 系统并发限制，如果调整此限制，需要确认tracer中的大小也需要调整
+  requestLimit: 1000
+  listen: :7001
+  # timeout: 60s
+  # 如果需要支持前缀，则可添加配置
+  # prefixes:
+  # - /api
+
+# 用户session的配置
+session:
+  path: /
+  key: tiny
+  # 如果设置为0s，则cookie有效期为session
+  maxAge: 0s
+  ttl: 240h
+  # 用于加密session cookie 
+  # 需要配置此属性或通过管理后台配置
+  keys:
+  - cuttlefish
+  - secret
+  trackKey: jt
+
+# redis 配置(不提供默认配置，避免有误)
+redis:
+  # 可以配置为下面的形式，则从env中获取REDIS_URI对应的字符串来当redis连接串
+  # uri: REDIS_URI
+  # uri: redis://:pass@127.0.0.1:6379/?slow=200ms&maxProcessing=1000
+  # uri: redis://127.0.0.1:6379/?slow=200ms&maxProcessing=1000
+
+# database配置(不提供默认配置，避免有误)
+database:
+  # 可以配置为下面的形式，则从env中获取DATABASE_URI对应的字符串来当database连接串
+  # 或者直接env中指定DATABASE_URI
+  # uri: mysql://root:pass@tcp(127.0.0.1:3306)/tiny-site?timeout=30s&parseTime=true&maxIdleConns=5&maxIdleTime=30m&maxOpenConns=100
+  # uri: postgres://vicanso:A123456@127.0.0.1:5432/tiny?maxIdleConns=5&maxIdleTime=30m&maxOpenConns=100
+
+# influxdb 配置
+influxdb:
+  # 如果与influxdb非同一内网，建议设置为gzip=true
+  uri: http://127.0.0.1:8086/?bucket=tiny&org=bigTree&token=4gKZsvuLPWhu9HNulacGSExWp645rzjPOhDHCzpT6Qg3wS2pcNF5ew1vaC5YmsTHiE7JIa1eKK6tblMnVgaBUQ==&batchSize=100&flushInterval=10s&gzip=false&disabled=false
+
+# mail相关配置
+mail:
+  url: smtp://tree.xie@outlook.com:pass@smtp.office365.com:587
+
+# 告警接收邮件列表
+alarm:
+  receivers:
+  - tree.xie@outlook.com
+
+# 定位相关配置
+location:
+  timeout: 3s
+  baseURL: https://ip.npmtrend.com
+
+# minio配置
+minio:
+  uri: minio://127.0.0.1:9000/?accessKeyID=origin&secretAccessKey=test123456&ssl=false
+
+# pyroscope配置
+pyroscope:
+  addr: http://127.0.0.1:4040
+  # token: ""
+
+tiny:
+  url: http://127.0.0.1:6002

@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2021 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,267 +16,412 @@ package controller
 
 import (
 	"bytes"
-	"encoding/base64"
-	"errors"
-	"fmt"
-	"mime"
-	"path/filepath"
-	"strconv"
+	"context"
+	"image"
+	"io/ioutil"
 	"strings"
 	"time"
 
 	"github.com/vicanso/elton"
 	"github.com/vicanso/hes"
-	"github.com/vicanso/tiny-site/config"
+	"github.com/vicanso/tiny-site/cs"
+	"github.com/vicanso/tiny-site/ent"
+	"github.com/vicanso/tiny-site/ent/bucket"
+	entImage "github.com/vicanso/tiny-site/ent/image"
+	"github.com/vicanso/tiny-site/log"
+	"github.com/vicanso/tiny-site/pipeline"
 	"github.com/vicanso/tiny-site/router"
-	"github.com/vicanso/tiny-site/service"
 	"github.com/vicanso/tiny-site/util"
 	"github.com/vicanso/tiny-site/validate"
 )
 
-type (
-	imageCtrl struct{}
-)
-
-var (
-	supportConvertImageTypes = []string{
-		"png",
-		"jpeg",
-		"jpg",
-		"webp",
-		"avif",
-	}
-)
-var (
-	errImageTypeIsInvalid      = hes.New("image type is invalid")
-	errImageTypeIsNotSupported = hes.New("image type isn't supported")
-	errImageParamsIsInvalid    = hes.New("image params is invalid")
-)
-
-const (
-	fileNameKey = "file"
-	fileZoneKey = "zone"
-	// 默认的s-maxage为缓存10分钟
-	defaultSMaxAge = 10 * time.Minute
-)
+type imageCtrl struct{}
 
 type (
-	optimParams struct {
-		Base64     string `json:"base64,omitempty" valid:"-"`
-		Type       string `json:"type,omitempty" valid:"-"`
-		SourceType string `json:"sourceType,omitempty" valid:"-"`
-		Quality    int    `json:"quality,omitempty" valid:"-"`
-		Width      int    `json:"width,omitempty" valid:"-"`
-		Height     int    `json:"height,omitempty" valid:"-"`
+	bucketAddParams struct {
+		// bucket的名称
+		Name string `json:"name" validate:"required,xImageBucket"`
+		// 拥有者
+		Owners []string `json:"owners" validate:"required,dive,xUserAccount"`
+		// 描述
+		Description string `json:"description" validate:"required,xImageDescription"`
 	}
-	optimImageInfo struct {
-		SourceType string `json:"sourceType,omitempty"`
-		Type       string `json:"type,omitempty"`
-		Quality    int    `json:"quality,omitempty"`
-		Width      int    `json:"width,omitempty"`
-		Height     int    `json:"height,omitempty"`
-		Data       []byte `json:"data,omitempty"`
-		MaxAge     string `json:"maxAge,omitempty"`
-		Size       int    `json:"size,omitempty"`
+	bucketUpdateParams struct {
+		// 拥有者
+		Owners []string `json:"owners" validate:"omitempty,dive,xUserAccount"`
+		// 描述
+		Description string `json:"description" validate:"omitempty,xImageDescription"`
+	}
+	bucketListParams struct {
+		listParams
+
+		// 关键字
+		Keyword string `json:"keyword" validate:"omitempty,xKeyword"`
+	}
+	imageAddParams struct {
+		Bucket      string `json:"bucket" validate:"required,xImageBucket"`
+		Name        string `json:"name" validate:"omitempty,xImageName"`
+		Tags        string `json:"tags" validate:"omitempty,xImageTags"`
+		Description string `json:"description" validate:"omitempty,xImageDescription"`
+
+		creator string
+		data    []byte
+	}
+	imageListParams struct {
+		listParams
+
+		Bucket string `json:"bucket" validate:"required,xImageBucket"`
+		Tag    string `json:"tag" validate:"omitempty,xImageTag"`
+	}
+	imageGetThumbnailParams struct {
+		Bucket string `json:"bucket" validate:"required,xImageBucket"`
+		// 图片名称
+		Name string `json:"name" validate:"omitempty,xImageName"`
+		// 缩略图大小
+		ThumbnailSize int `json:"thumbnailSize" validate:"omitempty,xImageThumbnailSize" default:"128"`
+	}
+)
+
+type (
+	bucketListResp struct {
+		Count   int           `json:"count"`
+		Buckets []*ent.Bucket `json:"buckets"`
+	}
+	imageListResp struct {
+		Count  int          `json:"count"`
+		Images []*ent.Image `json:"images"`
 	}
 )
 
 func init() {
-	mime.AddExtensionType(".avif", "image/avif")
+	prefix := "/images"
+	g := router.NewGroup(prefix, loadUserSession, shouldBeLogin)
 	ctrl := imageCtrl{}
-	g := router.NewGroup("/images")
 
-	previewURL := fmt.Sprintf("/v1/preview/{%s}/{%s}", fileZoneKey, fileNameKey)
-	g.GET(previewURL, ctrl.preview)
-	g.GET("/v1/optim/{"+fileNameKey+"}", ctrl.optim)
-	g.POST("/v1/optim", ctrl.optimFromData)
+	g.GET(
+		"/v1/buckets",
+		ctrl.listBucket,
+	)
 
-	g.GET("/v1/config", ctrl.config)
+	g.POST(
+		"/v1/buckets",
+		newTrackerMiddleware(cs.ActionBucketAdd),
+		ctrl.addBucket,
+	)
+	g.PATCH(
+		"/v1/buckets/{id}",
+		newTrackerMiddleware(cs.ActionBucketUpdate),
+		ctrl.updateBucket,
+	)
+
+	g.POST(
+		"/v1",
+		newTrackerMiddleware(cs.ActionImageAdd),
+		ctrl.addImage,
+	)
+
+	g.GET(
+		"/v1",
+		ctrl.listImage,
+	)
+
+	ng := router.NewGroup(prefix)
+	ng.GET(
+		"/v1/thumbnails/{bucket}/{name}",
+		ctrl.getImageThumbnail,
+	)
+	ng.GET(
+		"/v1/pipeline",
+		ctrl.pipeline,
+	)
+
 }
 
-func optimFromFile(file string, zone int) (info *optimImageInfo, err error) {
-	ext := filepath.Ext(file)
-	if ext == "" {
-		err = errImageTypeIsInvalid
-		return
+func (params *bucketListParams) where(query *ent.BucketQuery) *ent.BucketQuery {
+	if len(params.Keyword) != 0 {
+		query.Where(bucket.NameContains(params.Keyword))
 	}
-	imageType := ext[1:]
-	// 判断是否支持转换的图片类型
-	if !util.ContainsString(supportConvertImageTypes, imageType) {
-		err = errImageTypeIsNotSupported
-		return
+	return query
+}
+
+func (params *bucketListParams) queryAll(ctx context.Context) ([]*ent.Bucket, error) {
+	query := getBucketClient().Query()
+	query.Limit(params.GetLimit()).
+		Offset(params.GetOffset()).
+		Order(params.GetOrders()...)
+	return params.where(query).All(ctx)
+}
+
+func (params *bucketListParams) count(ctx context.Context) (int, error) {
+	query := getBucketClient().Query()
+
+	return query.Count(ctx)
+}
+
+func (params *imageAddParams) save(ctx context.Context) (*ent.Image, error) {
+	image, imageType, err := image.Decode(bytes.NewReader(params.data))
+	if err != nil {
+		return nil, err
 	}
 
-	fileName := strings.Replace(file, ext, "", 1)
-	arr := strings.Split(fileName, "-")
-	quality := 0
-	width := 0
-	height := 0
-	crop := 0
-	name := arr[0]
-	max := 5
-	// 参数最多只有5个
-	if len(arr) > max {
-		err = errImageParamsIsInvalid
-		return
+	return getImageClient().Create().
+		SetBucket(params.Bucket).
+		SetName(params.Name).
+		SetType(imageType).
+		SetSize(len(params.data)).
+		SetWidth(image.Bounds().Dx()).
+		SetHeight(image.Bounds().Dy()).
+		SetTags(params.Tags).
+		SetCreator(params.creator).
+		SetData(params.data).
+		SetDescription(params.Description).
+		Save(ctx)
+}
+
+func (params *imageListParams) where(query *ent.ImageQuery) *ent.ImageQuery {
+	if params.Bucket != "" {
+		query.Where(entImage.Bucket(params.Bucket))
 	}
-	if len(arr) > 1 {
-		quality, err = strconv.Atoi(arr[1])
+	if params.Tag != "" {
+		query.Where(entImage.TagsContains(params.Tag))
+	}
+	return query
+}
+
+func (params *imageListParams) queryAll(ctx context.Context) ([]*ent.Image, error) {
+	query := getImageClient().Query()
+	query = query.Limit(params.GetLimit()).
+		Offset(params.GetOffset()).
+		Order(params.GetOrders()...)
+	params.where(query)
+	fields := params.GetFields()
+	if len(fields) != 0 {
+		result := make([]*ent.Image, 0)
+		err := query.Select(fields...).Scan(ctx, &result)
 		if err != nil {
-			return
+			return nil, err
 		}
+		return result, nil
 	}
-	if len(arr) > 2 {
-		width, err = strconv.Atoi(arr[2])
+
+	return query.All(ctx)
+}
+
+func (params *imageListParams) count(ctx context.Context) (int, error) {
+	query := getImageClient().Query()
+	params.where(query)
+	return query.Count(ctx)
+}
+
+func (params *bucketUpdateParams) updateOneID(ctx context.Context, id int, creator string) (*ent.Bucket, error) {
+	result, err := getBucketClient().Query().Where(
+		bucket.IDEQ(id),
+	).First(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if result.Creator != creator {
+		return nil, hes.NewWithExcpetion("Forbidden to modify bucket")
+	}
+	updateOne := getBucketClient().UpdateOneID(id)
+	if params.Description != "" {
+		updateOne.SetDescription(params.Description)
+	}
+	if len(params.Owners) != 0 {
+		updateOne.SetOwners(params.Owners)
+	}
+	return updateOne.Save(ctx)
+}
+
+func validateBucketForUser(ctx context.Context, bucketName, account string) error {
+	if bucketName == "" {
+		return hes.New("bucket名称不能为空")
+	}
+	result, err := getBucketClient().Query().
+		Where(bucket.Name(bucketName)).
+		First(ctx)
+	if err != nil {
+		return err
+	}
+	if len(result.Owners) != 0 && !util.ContainsString(result.Owners, account) {
+		return hes.New("无权限添加图片至此bucket")
+	}
+	return nil
+}
+
+func (*imageCtrl) addBucket(c *elton.Context) error {
+	params := bucketAddParams{}
+	err := validateBody(c, &params)
+	if err != nil {
+		return err
+	}
+	account := getUserSession(c).MustGetInfo().Account
+	bucket, err := getBucketClient().Create().
+		SetName(params.Name).
+		SetOwners(params.Owners).
+		SetDescription(params.Description).
+		SetCreator(account).
+		Save(c.Context())
+	if err != nil {
+		return err
+	}
+	c.Created(bucket)
+	return nil
+}
+
+func (*imageCtrl) updateBucket(c *elton.Context) error {
+	id, err := getIDFromParams(c)
+	if err != nil {
+		return err
+	}
+	params := bucketUpdateParams{}
+	err = validateBody(c, &params)
+	if err != nil {
+		return err
+	}
+	us := getUserSession(c)
+	result, err := params.updateOneID(c.Context(), id, us.MustGetInfo().Account)
+	if err != nil {
+		return err
+	}
+	c.Body = result
+	return nil
+}
+
+func (*imageCtrl) listBucket(c *elton.Context) error {
+	params := bucketListParams{}
+	err := validateQuery(c, &params)
+	if err != nil {
+		return err
+	}
+	count := -1
+	if params.ShouldCount() {
+		count, err = params.count(c.Context())
 		if err != nil {
-			return
+			return err
 		}
 	}
-	if len(arr) > 3 {
-		height, err = strconv.Atoi(arr[3])
+
+	buckets, err := params.queryAll(c.Context())
+	if err != nil {
+		return err
+	}
+	c.Body = &bucketListResp{
+		Count:   count,
+		Buckets: buckets,
+	}
+	return nil
+}
+
+func (*imageCtrl) addImage(c *elton.Context) error {
+	params := imageAddParams{
+		Bucket: c.Request.FormValue("bucket"),
+		Name:   c.Request.FormValue("name"),
+		Tags:   c.Request.FormValue("tags"),
+		Description: c.Request.FormValue("description"),
+	}
+	err := validate.Struct(&params)
+	if err != nil {
+		return err
+	}
+	if params.Name == "" {
+		params.Name = util.GenXID()
+	}
+
+	account := getUserSession(c).MustGetInfo().Account
+	err = validateBucketForUser(c.Context(), params.Bucket, account)
+	if err != nil {
+		return err
+	}
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	buf, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+	params.creator = account
+	params.data = buf
+	result, err := params.save(c.Context())
+	if err != nil {
+		return err
+	}
+	// 图片数据不返回
+	result.Data = nil
+	c.Created(result)
+	return nil
+}
+
+func (*imageCtrl) listImage(c *elton.Context) error {
+	params := imageListParams{}
+	err := validateQuery(c, &params)
+	if err != nil {
+		return err
+	}
+
+	count := -1
+	if params.ShouldCount() {
+		count, err = params.count(c.Context())
 		if err != nil {
-			return
+			return err
 		}
 	}
-	if len(arr) > 4 {
-		crop, err = strconv.Atoi(arr[4])
-		if err != nil {
-			return
-		}
+	images, err := params.queryAll(c.Context())
+	if err != nil {
+		return err
 	}
 
-	// 获取图片数据
-	f, err := fileSrv.GetByName(name)
-	if err != nil {
-		return
+	c.Body = &imageListResp{
+		Count:  count,
+		Images: images,
 	}
-	if zone != 0 && f.Zone != zone {
-		err = errors.New("zone is invalid")
-		return
-	}
-	if width != 0 && width > f.Width {
-		width = f.Width
-	}
-	if height != 0 && height > f.Height {
-		height = f.Height
-	}
-
-	// 图片转换压缩
-	data, err := optimSrv.Image(service.ImageOptimParams{
-		Data:       f.Data,
-		SourceType: f.Type,
-		Type:       imageType,
-		Quality:    quality,
-		Width:      width,
-		Height:     height,
-		Crop:       crop,
-	})
-	if err != nil {
-		return
-	}
-	info = &optimImageInfo{
-		Data:       data,
-		SourceType: f.Type,
-		Type:       imageType,
-		Quality:    quality,
-		Width:      width,
-		Height:     height,
-		MaxAge:     f.MaxAge,
-		Size:       len(data),
-	}
-	return
+	return nil
 }
 
-func (ctrl imageCtrl) preview(c *elton.Context) (err error) {
-	file := c.Param(fileNameKey)
-	ext := filepath.Ext(file)
-	autoDetected := false
-	// 如果未设置后缀，则从Accept中判断（不建议使用此方式，尽量由客户端指定后缀）
-	// 如果支持webp则webp，否则为jpg
-	if ext == "" {
-		if strings.Contains(c.GetRequestHeader("Accept"), "image/webp") {
-			ext = ".webp"
-		} else {
-			ext = ".jpeg"
-		}
-		file += ext
-		autoDetected = true
-	}
-	// zone主要用于从url中统计每个zone的访问量
-	zone, err := strconv.Atoi(c.Param(fileZoneKey))
+func (*imageCtrl) getImageThumbnail(c *elton.Context) error {
+	params := imageGetThumbnailParams{}
+	err := validate.Query(&params, util.MergeMapString(c.Params.ToMap(), c.Query()))
 	if err != nil {
-		return
+		return err
 	}
+	jobs := []pipeline.ImageJob{
+		pipeline.NewGetEntImage(params.Bucket, params.Name),
+		pipeline.NewFitResizeImage(params.ThumbnailSize, params.ThumbnailSize),
+	}
+	img, err := pipeline.Do(c.Context(), nil, jobs...)
+	if err != nil {
+		return err
+	}
+	c.CacheMaxAge(time.Minute)
+	c.SetContentTypeByExt("." + img.Type)
+	c.BodyBuffer = bytes.NewBuffer(img.Data)
 
-	info, err := optimFromFile(file, zone)
-	if err != nil {
-		return
-	}
-
-	if err != nil {
-		return
-	}
-	if info.MaxAge != "" {
-		// 如果自动生成后缀的，仅可客户端缓存
-		d, _ := time.ParseDuration(info.MaxAge)
-		if autoDetected {
-			c.SetHeader(elton.HeaderCacheControl, fmt.Sprintf("private, max-age=%d", int(d.Seconds())))
-		} else {
-			// 	// 设置缓存服务的缓存时长
-			c.CacheMaxAge(d, defaultSMaxAge)
-		}
-	}
-	c.SetContentTypeByExt(ext)
-	c.BodyBuffer = bytes.NewBuffer(info.Data)
-	return
+	return nil
 }
 
-func (ctrl imageCtrl) optim(c *elton.Context) (err error) {
-	file := c.Param(fileNameKey)
-	info, err := optimFromFile(file, 0)
+func (*imageCtrl) pipeline(c *elton.Context) error {
+	rawQuery := c.Request.URL.RawQuery
+	if len(rawQuery) == 0 {
+		return hes.New("pipeline can not be empty")
+	}
+	tasks := strings.Split(rawQuery, "|")
+	jobs, err := pipeline.Parse(tasks, c.Request.Header)
 	if err != nil {
-		return
+		return err
 	}
-	c.Body = info
-	return
-}
-
-func (ctrl imageCtrl) optimFromData(c *elton.Context) (err error) {
-	params := new(optimParams)
-	err = validate.Do(params, c.RequestBody)
+	img, err := pipeline.Do(c.Context(), nil, jobs...)
 	if err != nil {
-		return
+		return err
 	}
-	buf, err := base64.StdEncoding.DecodeString(params.Base64)
-	if err != nil {
-		return
-	}
-	// 图片转换压缩
-	data, err := optimSrv.Image(service.ImageOptimParams{
-		Data:       buf,
-		SourceType: params.SourceType,
-		Type:       params.Type,
-		Quality:    params.Quality,
-		Width:      params.Width,
-		Height:     params.Height,
-	})
-	if err != nil {
-		return
-	}
-	c.Body = &optimImageInfo{
-		Data:       data,
-		SourceType: params.Type,
-		Type:       params.Type,
-		Quality:    params.Quality,
-		Width:      params.Width,
-		Height:     params.Height,
-		Size:       len(data),
-	}
-
-	return
-}
-
-func (ctrl imageCtrl) config(c *elton.Context) (err error) {
-	c.Body = config.GetImagePreview()
-	return
+	log.Info(c.Context()).
+		Strs("tasks", tasks).
+		Int("originalSize", img.OriginalSize).
+		Int("size", img.Size).
+		Int("percent", 100*img.Size/img.OriginalSize).
+		Msg("")
+	c.SetContentTypeByExt("." + img.Type)
+	c.BodyBuffer = bytes.NewBuffer(img.Data)
+	return nil
 }

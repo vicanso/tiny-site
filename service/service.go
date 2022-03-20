@@ -1,4 +1,4 @@
-// Copyright 2019 tree xie
+// Copyright 2020 tree xie
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,22 +15,9 @@
 package service
 
 import (
-	jsoniter "github.com/json-iterator/go"
-	"github.com/vicanso/tiny-site/helper"
-	"github.com/vicanso/tiny-site/log"
+	"github.com/vicanso/tiny-site/cache"
 )
 
 var (
-	standardJSON = jsoniter.ConfigCompatibleWithStandardLibrary
-
-	redisGetClient = helper.RedisGetClient
-
-	pgCreate       = helper.PGCreate
-	pgGetClient    = helper.PGGetClient
-	pgFormatOrder  = helper.PGFormatOrder
-	pgFormatSelect = helper.PGFormatSelect
-
-	logger = log.Default()
-
-	redisSrv = new(RedisSrv)
+	redisSrv = cache.GetRedisCache()
 )

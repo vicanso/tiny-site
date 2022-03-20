@@ -1,175 +1,127 @@
 # tiny-site
 
-在各终端分辨率以及支持图片格式各有差异的现实下，开发者一般都会采用折衷方案（偷懒）：选用最高的分辨率，最通用的图片格式。对于小分辨率终端，过高的分辨率，显示时做缩小展示，浪费了带宽。对于支持更优图片格式的终端，没有在质量与流量取得更优的平衡。
+[![Build Status](https://github.com/vicanso/tiny-site/workflows/Test/badge.svg)](https://github.com/vicanso/tiny-site/actions)
 
-如果你有以下的烦恼：
+基于`elton`的脚手架，实现了数据校验、行为统计等功能。
 
-- 客户端支持的图片格式不一，无法全部使用最优格式
-- 需要使用固定高度，宽度100%的banner场景，应对不同的分辨率
-- 不同的使用场景需要使用不同的质量图片
-- 按需生成各类缩略图
+## 特性
 
-使用`tiny-site`图片管理系统，可以简单的将原图片上传之后，依赖于[tiny](https://github.com/vicanso/tiny)，根据应用场景选择适合的图片参数，可生成`webp`, `png`与`jpeg`。通过文件名格式定义，以简便的形式支持自定义图片质量与尺寸，搭配CDN可根据应用需要生成各类不同的图片。
+### 简单的应用配置
 
-## 系统流程
+- 应用配置通过加载default.yml + 当前GO_ENV所对应的yml组合生成，简化配置
+- 支持配置参数的校验，保证应用启动时的参数准确性
+- 支持优先从ENV中获取配置参数，若获取失败再使用yml配置
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/vicanso/tiny-site/master/assets/tiny.jpg">
-</p>
+### 多类缓存模块
 
-## 功能介绍
+缓存模块支持三类缓存：LRU+TTL的高速缓存，redis+ttl的共有缓存以及redis+lru+ttl的多级缓存
 
-网站的主要功能比较简单，上传图片、图片列表、预览选择图片参数以及图片更新。
-
-![](./assets/file-zone.jpg)
-
-![](./assets/file-add.jpg)
-
-![](./assets/file-list.jpg)
-
-![](./assets/file-preview.jpg)
-
-## HTTP API
-
-- `base64` 图片数据转换为base64
-- `type` 转换的图片类型
-- `sourceType` 原图片类型
-- `quality` 图片压缩质量，0为默认值，对于webp则表示无损压缩
-- `width` 图片宽度，0表示原有宽度
-- `height` 图片高度，0表示原有高度
-
-```bash
-curl 'https://tiny.aslant.site/images/v1/optim' -H 'content-type: application/json;charset=UTF-8' --data-binary '{"base64":"base64-data","type":"webp","sourceType":"png","quality":0,"width":0,"height":0}' --compressed
+```go
+// redis缓存中简化的struct读取与保存
+err := cache.GetRedisCache().SetStruct(context.Background(), "key", &map[string]string{
+  "name": "my name",
+}, time.Minute)
+data := make(map[string]string)
+err = cache.GetRedisCache().GetStruct(context.Background(), "key", &data)
 ```
 
-- `sourceType` 原图片类型
-- `type` 转换的图片类型
-- `data` 转换后的图片数据(base64)
-- `size` 图片大小(字节)
+### 支持多类自定义配置
+
+- 黑名单IP配置，允许设置黑名单IP禁止访问
+- 路由Mock配置，允许自定义路由的响应
+- 路由并发配置，允许限制路由的最大并发数及访问频率
+- Session拦截配置，允许将session的读取拦截，返回出错信息，用于系统禁止客户使用
+
+### 详尽的性能指标
+
+性能指标中包括以下的相关指标：
+
+- `goMaxProcs` 程序使用的最大CPU数量
+- `threadCount` 程序当前线程数
+- `memSys` 系统申请内存
+- `memHeapSys` 系统申请heap
+- `memHeapInuse` 使用中的heap
+- `memFrees` heap对象释放的数量
+- `routineCount` goroutine的数量
+- `cpuUsage` CPU使用率
+- `lastGC` 上一次GC的时间
+- `numGC` GC的次数
+- `recentPause` 最近一次GC暂停的时长
+- `pauseTotal` GC暂停的总时长
+- `connProcessing` 当前处理中的连接数（http.Server)
+- `connProcessedCount` 处理过的连接总数
+- `connAlive` 当前活跃的连接数
+- `connCreatedCount` 被创建的连接总数
+- `concurrency` 请求并发数
+- `requestProcessedTotal` 处理过的请求总数
+
+### Redis
+
+redis模块记录了当前并发请求以及pipeline请求量，可以设置最大并发请求量，提供简单的熔断处理。
+
+## entc
+
+编译schema对应代码
+
 ```bash
-{"sourceType":"webp","type":"webp","data":"base64-data","size":1074}
+make install && make generate
 ```
 
-## 使用步骤
 
-### 启动tiny压缩服务
+## commit
 
-```bash
+feat：新功能（feature）
+
+fix：修补bug
+
+docs：文档（documentation）
+
+style： 格式（不影响代码运行的变动）
+
+refactor：重构（即不是新增功能，也不是修改bug的代码变动）
+
+test：增加测试
+
+chore：构建过程或辅助工具的变动
+
+## 启动数据库
+
+### postgres
+
+```
+docker pull postgres:alpine
+
 docker run -d --restart=always \
-  -p 7001:7001 \
-  -p 7002:7002 \
-  --name=tiny \
-  vicanso/tiny
-```
-
-其中7001是提供HTTP服务，tiny-site主要使用7002的GRPC服务，因此7001可按需要设置是否可用。
-
-### 初始化数据库
-
-数据库使用`postgres`，可以使用docker启动相关的镜像并设置初始化数据库，其中账号密码可根据需要设置。
-
-```bash
-docker run \
+  -v $PWD/tiny-site:/var/lib/postgresql/data \
+  -e POSTGRES_PASSWORD=A123456 \
   -p 5432:5432 \
-  -e POSTGRES_USER=test \
-  -e POSTGRES_PASSWORD=123456 \
-  --restart=always \
-  --name=postgres \
-  -v /data:/var/lib/postgresql/data \
-  -d postgres:alpine
+  --name=tiny-db \
+  postgres:alpine
+
+docker exec -it tiny-db sh
+
+psql -c "CREATE DATABASE tiny;" -U postgres
+psql -c "CREATE USER vicanso WITH PASSWORD 'A123456';" -U postgres
+psql -c "GRANT ALL PRIVILEGES ON DATABASE tiny to vicanso;" -U postgres
 ```
 
-### 创建db以及初始化权限
+## redis
 
-```bash
-docker exec -it postgres sh
-
-psql -U test
-
-CREATE DATABASE "tiny" OWNER test;
-
-GRANT ALL PRIVILEGES ON DATABASE "tiny" to test;
 ```
+docker pull redis:alpine
 
-
-### 启动服务
-
-```bash
 docker run -d --restart=always \
-  -p 7500:7001 \
-  -e GO_ENV=production \
-  -e PASS=pass \
-  --name=tiny-site \
-  vicanso/tiny-site
+  -p 6379:6379 \
+  --name=redis \
+  redis:alpine
 ```
 
-配置中密码为PASS，如果在env中有此字段，则会取ENV中配置的值，因此可以根据需要直接将密码设置至配置文件或者ENV中。需要注意，因为production.yml中的数据库配置在各自应用场景中不一致，建议`fork`项目再自己编译。或者增加自定义配置文件，`mount`至`/tiny-site/production.yml`，则启动脚本如下：
+## 规范
 
-```yaml
-# production 生产环境中使用的相关配置
+- 所有自定义的error都必须为hes.Error
+- 数值类的展示需要使用专用组件
+- 用户点击类的操作需要使用专用组件
 
-# redis 配置 （填写相应密码与host)
-redis: redis://:pass@redisHost:6379
+## 常见问题
 
-# postgres 配置（填写相应密码与host)
-postgres:
-  user: test
-  host: postgresHost
-  password: pass
-
-# tiny 配置tiny服务的IP（如果grpc的服务端口不是6002，也需要调整）
-tiny:
-  host: 192.168.0.171
-  port: 7002
-
-# 预览地址（根据实际使用配置预览地址，建议使用CDN，再设置CDN回源策略）
-imagePreview:
-  url: "http://localhost:7001/images/v1/preview/:zone/:file"
-```
-
-```bash
-docker run -d --restart=always \
-  -p 7500:7001 \
-  -e GO_ENV=production \
-  -v /opt/tiny/production.yml:/tiny-site/production.yml \
-  --name=tiny-site \
-  vicanso/tiny-site
-```
-
-## 使用建议
-
-`tiny-site`目标是提供简单的方式定义图片参数，尽可能简单的使用较优的图片。为什么说是较优呢？因为此项目考虑的是能用性，主要是使用经常更新的图片应用场景，以及一图多终端使用的应用场景。由于各终端分辨率，支持图片类型各有差异，因此建议在终端中动态生成图片地址，根据展示的区域大小，支持的图片类型指定相应的图片参数。需要注意，由于`tiny`本身非专注与图片转换性能，因此建议使用CDN来缓存图片，提升性能。
-
-### 浏览器中判断是否支持WEBP
-
-```js
-let isSupportWebp = false;
-(function() {
-  const images = {
-    basic:
-      "data:image/webp;base64,UklGRjIAAABXRUJQVlA4ICYAAACyAgCdASoCAAEALmk0mk0iIiIiIgBoSygABc6zbAAA/v56QAAAAA==",
-    lossless:
-      "data:image/webp;base64,UklGRh4AAABXRUJQVlA4TBEAAAAvAQAAAAfQ//73v/+BiOh/AAA="
-  };
-  const check = data =>
-    new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = resolve;
-      img.onerror = reject;
-      img.src = data;
-    });
-  Promise.all(map(images, check))
-    .then(() => true)
-    .catch(() => false)
-    .then(result => {
-      isSupportWebp = result;
-    });
-})();
-
-export function supportWebp() {
-  return isSupportWebp;
-}
-```
-
-在浏览器中，使用上面的判断，对于支持`webp`格式的，则将图片后续替换为`.webp`，而不支持的则使用原后缀。`iOS`并没有支持`webp`格式，如果是在APP中，则可以自己扩展实现，`android`则系统原生支持，不需要做调整。
-
+- esbuild提示未成功安装，执行`node node_modules/esbuild/install.js`
